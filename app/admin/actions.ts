@@ -34,9 +34,18 @@ async function requireAdmin() {
   return { supabase, user };
 }
 
-function adminRedirect(message: string, error = false) {
+function adminRedirect(message: string, error = false): never {
   const key = error ? "error" : "message";
   redirect(`/admin?${key}=${encodeURIComponent(message)}`);
+}
+
+function getAdminClientOrRedirect(): ReturnType<typeof createAdminClient> {
+  try {
+    return createAdminClient();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Admin-Zugang fehlt.";
+    adminRedirect(message, true);
+  }
 }
 
 export async function updateProjectPhase(formData: FormData) {
@@ -93,14 +102,7 @@ export async function inviteClient(formData: FormData) {
     adminRedirect("Bitte Name und E-Mail-Adresse angeben.", true);
   }
 
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Admin-Zugang fehlt.";
-    adminRedirect(message, true);
-  }
-
+  const admin = getAdminClientOrRedirect();
   const headerStore = headers();
   const origin = headerStore.get("origin") ?? "https://hasim-client-portal.vercel.app";
 
