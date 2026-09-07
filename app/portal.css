@@ -1,0 +1,383 @@
+.portal-hero-grid,
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.help-card,
+.project-status-section,
+.message-panel,
+.messages-history,
+.admin-panel {
+  margin-top: 18px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.portal-hero-grid .help-card {
+  margin-top: 0;
+}
+
+.help-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.help-card h2,
+.project-status-section h2,
+.message-panel h2,
+.messages-history h2,
+.admin-panel h2 {
+  margin: 6px 0;
+  font-size: 22px;
+}
+
+.help-card > p,
+.admin-hint {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.help-steps {
+  display: grid;
+  gap: 11px;
+  margin-top: 18px;
+}
+
+.help-steps > div {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.category-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.category-card {
+  min-height: 150px;
+}
+
+.compact-heading {
+  margin-bottom: 8px;
+}
+
+.upload-form-expanded {
+  grid-template-columns: 1fr 200px 1.4fr;
+}
+
+.upload-files-field,
+.upload-note-field,
+.upload-actions {
+  grid-column: 1 / -1;
+}
+
+.upload-form textarea,
+.message-form textarea,
+.admin-form input,
+.admin-form select,
+.admin-create-project-form input,
+.admin-create-project-form select,
+.admin-phase-form select,
+.admin-phase-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.upload-form textarea:focus,
+.message-form textarea:focus,
+.admin-form input:focus,
+.admin-form select:focus,
+.admin-create-project-form input:focus,
+.admin-create-project-form select:focus,
+.admin-phase-form select:focus,
+.admin-phase-form textarea:focus {
+  outline: 2px solid #111318;
+  outline-offset: 1px;
+}
+
+.optional-label {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.upload-actions,
+.message-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+}
+
+.note-counter {
+  margin-right: auto;
+  font-size: 12px;
+}
+
+.upload-history {
+  display: grid;
+  gap: 14px;
+}
+
+.upload-history-group {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.upload-group-header,
+.project-status-head,
+.admin-project-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.upload-group-header strong,
+.upload-group-header span,
+.project-status-head strong,
+.project-status-head span,
+.admin-project-head strong,
+.admin-project-head span {
+  display: block;
+}
+
+.upload-group-header span,
+.project-status-head span,
+.admin-project-head span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.upload-note,
+.phase-note {
+  margin: 14px 0 2px;
+  padding: 12px 14px;
+  background: #f7f8f9;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.message-form,
+.admin-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.message-form label,
+.admin-form label,
+.admin-create-project-form label,
+.admin-phase-form label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.message-list,
+.admin-list,
+.admin-project-list {
+  display: grid;
+  gap: 12px;
+}
+
+.message-item,
+.admin-list-row,
+.admin-project-card {
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.message-meta,
+.admin-list-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.message-meta span,
+.admin-list-row span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.message-item p,
+.admin-message-row p {
+  margin: 10px 0 0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.portal-warning {
+  margin-top: 18px;
+  padding: 13px 14px;
+  border: 1px solid #f0c2bd;
+  border-radius: 10px;
+  background: #fff4f2;
+  color: #9f2d20;
+  font-size: 14px;
+}
+
+.project-status-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.project-status-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.phase-pill {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: #111318;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  white-space: nowrap;
+  margin-top: 0 !important;
+}
+
+.phase-track {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 18px;
+}
+
+.phase-step {
+  height: 7px;
+  border-radius: 999px;
+  background: #e6e8eb;
+}
+
+.phase-step.active {
+  background: #111318;
+}
+
+.admin-main {
+  max-width: 1500px;
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.admin-stat-card {
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.admin-stat-card strong,
+.admin-stat-card span {
+  display: block;
+}
+
+.admin-stat-card strong {
+  margin-top: 18px;
+  font-size: 28px;
+}
+
+.admin-stat-card span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-panel .upload-panel,
+.admin-panel .message-panel,
+.admin-grid > .upload-panel,
+.admin-grid > .message-panel {
+  margin-top: 18px;
+}
+
+.admin-create-project-form {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.admin-project-card {
+  padding: 18px;
+}
+
+.admin-phase-form {
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+}
+
+.admin-phase-note textarea {
+  resize: vertical;
+}
+
+.admin-list-row > div > strong,
+.admin-list-row > div > span {
+  display: block;
+}
+
+.admin-list-row > div > span {
+  margin-top: 4px;
+}
+
+@media (max-width: 1200px) {
+  .category-grid,
+  .admin-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-hero-grid,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .category-grid,
+  .admin-stat-grid,
+  .upload-form-expanded,
+  .admin-create-project-form,
+  .admin-phase-form {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-group-header,
+  .project-status-head,
+  .admin-project-head,
+  .message-meta,
+  .admin-list-row {
+    flex-direction: column;
+  }
+
+  .phase-track {
+    gap: 3px;
+  }
+}
