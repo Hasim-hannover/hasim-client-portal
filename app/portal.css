@@ -348,6 +348,49 @@
   margin-top: 4px;
 }
 
+.system-status-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.system-status-row {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 12px 14px;
+  background: #f7f8f9;
+  border-radius: 12px;
+}
+
+.system-status-row strong,
+.system-status-row span {
+  display: block;
+}
+
+.system-status-row span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.system-test-form {
+  margin-top: 16px;
+}
+
+.system-test-form .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.system-test-form .secondary-button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1200px) {
   .category-grid,
   .admin-stat-grid {
