@@ -1,3 +1,15 @@
+-- Production workflow: explicit material requests connect admin intent to client uploads.
+
+alter table public.notification_deliveries
+  drop constraint if exists notification_deliveries_kind_check;
+
+alter table public.notification_deliveries
+  add constraint notification_deliveries_kind_check
+  check (kind in (
+    'upload_owner','upload_customer','message_owner','message_customer',
+    'request_customer','phase_customer','invite','recovery','test'
+  ));
+
 create table if not exists public.project_requests (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references public.projects(id) on delete cascade,
@@ -43,10 +55,7 @@ using (
 create policy project_requests_insert_admin
 on public.project_requests for insert
 to authenticated
-with check (
-  created_by = (select auth.uid())
-  and (select private.is_admin())
-);
+with check (created_by = (select auth.uid()) and (select private.is_admin()));
 
 create policy project_requests_update_admin
 on public.project_requests for update
@@ -87,10 +96,8 @@ for each row execute function public.touch_project_request_updated_at();
 alter table public.project_files
   add column if not exists request_id uuid references public.project_requests(id) on delete set null;
 
-create index if not exists project_files_request_id_idx
-  on public.project_files(request_id);
+create index if not exists project_files_request_id_idx on public.project_files(request_id);
 
--- A linked request must belong to the same project as the uploaded file.
 create or replace function public.validate_project_file_request()
 returns trigger
 language plpgsql
@@ -99,10 +106,8 @@ set search_path = ''
 as $$
 begin
   if new.request_id is not null and not exists (
-    select 1
-    from public.project_requests r
-    where r.id = new.request_id
-      and r.project_id = new.project_id
+    select 1 from public.project_requests r
+    where r.id = new.request_id and r.project_id = new.project_id
   ) then
     raise exception 'Project request does not belong to this project';
   end if;
@@ -146,7 +151,6 @@ create trigger project_files_mark_request_submitted
 after insert on public.project_files
 for each row execute function public.mark_project_request_submitted();
 
--- Preserve existing file policy while validating optional request links.
 drop policy if exists files_insert_access on public.project_files;
 create policy files_insert_access
 on public.project_files for insert
@@ -154,16 +158,14 @@ to authenticated
 with check (
   uploader_id = (select auth.uid())
   and exists (
-    select 1
-    from public.projects pr
+    select 1 from public.projects pr
     where pr.id = project_files.project_id
       and (pr.client_id = (select auth.uid()) or (select private.is_admin()))
   )
   and (
     request_id is null
     or exists (
-      select 1
-      from public.project_requests r
+      select 1 from public.project_requests r
       where r.id = project_files.request_id
         and r.project_id = project_files.project_id
     )
