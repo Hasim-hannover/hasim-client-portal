@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { escapeHtml, sendTransactionalEmail } from "@/lib/notifications/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -134,4 +135,47 @@ export async function inviteClient(formData: FormData) {
   }
 
   adminRedirect(projectName ? "Kunde eingeladen und Projekt angelegt." : "Kunde eingeladen.");
+}
+
+export async function sendBrevoTestEmail() {
+  const { supabase, user } = await requireAdmin();
+  const recipient = process.env.NOTIFICATION_EMAIL || user.email;
+
+  if (!recipient) {
+    adminRedirect("Keine Benachrichtigungsadresse konfiguriert.", true);
+  }
+
+  const result = await sendTransactionalEmail({
+    to: recipient,
+    subject: "Kundenportal – Brevo Systemtest",
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111318;max-width:620px;margin:0 auto">
+        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:20px">Hasim Client Portal</div>
+        <h1 style="font-size:24px;margin:0 0 16px">Brevo-Verbindung funktioniert</h1>
+        <p>Diese Testmail wurde direkt vom produktiven Kundenportal über Brevo versendet.</p>
+        <p><strong>Empfänger:</strong> ${escapeHtml(recipient)}</p>
+      </div>
+    `,
+    idempotencyKey: `portal-system-test-${crypto.randomUUID()}`,
+  });
+
+  await supabase.from("notification_deliveries").insert({
+    actor_id: user.id,
+    project_id: null,
+    event_id: null,
+    kind: "test",
+    recipient_type: "test",
+    recipient_email: recipient,
+    provider: "brevo",
+    provider_status: result.status,
+    provider_message_id: result.messageId ?? null,
+    ok: result.ok,
+    error: result.error ?? null,
+  });
+
+  if (!result.ok) {
+    adminRedirect(`Brevo-Test fehlgeschlagen (${result.status || "Netzwerk"}): ${result.error ?? "Unbekannter Fehler"}`, true);
+  }
+
+  adminRedirect(`Brevo-Testmail an ${recipient} wurde angenommen.`);
 }
