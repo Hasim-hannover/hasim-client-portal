@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type Project = { id: string; name: string };
@@ -36,7 +36,7 @@ export function UploadPanel({
   projects,
   requests = [],
   initialRequestId = "",
-  mode = "client",
+  mode,
 }: {
   projects: Project[];
   requests?: ProjectRequest[];
@@ -44,8 +44,10 @@ export function UploadPanel({
   mode?: UploadMode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const effectiveMode: UploadMode = mode ?? (pathname.startsWith("/admin") ? "admin" : "client");
   const supabase = useMemo(() => createClient(), []);
-  const initialRequest = mode === "client"
+  const initialRequest = effectiveMode === "client"
     ? requests.find((request) => request.id === initialRequestId && request.status !== "done")
     : undefined;
   const [projectId, setProjectId] = useState(initialRequest?.projectId ?? projects[0]?.id ?? "");
@@ -123,7 +125,7 @@ export function UploadPanel({
           project_id: projectId,
           uploader_id: user.id,
           upload_id: uploadId,
-          request_id: mode === "client" && requestId ? requestId : null,
+          request_id: effectiveMode === "client" && requestId ? requestId : null,
           category,
           note: note.trim() || null,
           file_name: file.name,
@@ -145,7 +147,7 @@ export function UploadPanel({
         setStatus("Upload erfolgreich. Die E-Mail-Benachrichtigung ist noch nicht aktiviert.");
       } else if (notification.failed?.length) {
         setStatus("Upload erfolgreich. Mindestens eine E-Mail konnte nicht zugestellt werden.");
-      } else if (mode === "admin") {
+      } else if (effectiveMode === "admin") {
         setStatus("Upload erfolgreich. Der Kunde wurde automatisch per E-Mail benachrichtigt.");
       } else {
         setStatus("Upload erfolgreich. Hasim Üner wurde benachrichtigt und du hast eine Bestätigung per E-Mail erhalten.");
@@ -189,7 +191,7 @@ export function UploadPanel({
           {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
         </select>
 
-        {mode === "client" ? <>
+        {effectiveMode === "client" ? <>
           <label htmlFor="upload-request">Wofür sind die Dateien?</label>
           <select id="upload-request" value={requestId} onChange={(event) => handleRequestChange(event.target.value)} disabled={uploading}>
             <option value="">Allgemeiner Projekt-Upload</option>
