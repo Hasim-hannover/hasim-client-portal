@@ -47,7 +47,7 @@ export function UploadPanel({ projects }: { projects: Project[] }) {
     setFiles(selectedFiles);
     if (!selectedFiles.length) return;
 
-    const categories = [...new Set(selectedFiles.map(inferCategory))];
+    const categories = Array.from(new Set(selectedFiles.map(inferCategory)));
     setCategory(categories.length === 1 ? categories[0] : "other");
   }
 
