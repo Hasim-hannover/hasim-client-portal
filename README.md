@@ -27,10 +27,17 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Danach in `.env.local` die Supabase-Werte eintragen.
+Danach in `.env.local` diese Variablen eintragen:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
 ## Supabase
 
-Das erste Datenmodell liegt unter `supabase/schema.sql`. Die Datei enthält Tabellen für Profile, Projekte und Projektdateien sowie grundlegende RLS-Regeln.
+Das Datenmodell wird versioniert über Migrationen unter `supabase/migrations/` verwaltet. Enthalten sind Profile, Projekte, Projektdateien, Row Level Security und der private Storage-Bucket für Projektdateien.
+
+## Deployment
+
+`main` ist der Production-Branch. Pushes auf `main` lösen das Vercel-Deployment aus; Supabase übernimmt Datenbankänderungen aus `supabase/migrations/`.
 
 Keine Secrets in GitHub committen.
