@@ -1,11 +1,5 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-type CookieToSet = {
-  name: string;
-  value: string;
-  options: CookieOptions;
-};
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -21,15 +15,20 @@ export async function updateSession(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet: CookieToSet[]) {
+      setAll(cookiesToSet, cacheHeaders) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+        Object.entries(cacheHeaders).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
       },
     },
   });
 
-  await supabase.auth.getUser();
+  await supabase.auth.getClaims();
   response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

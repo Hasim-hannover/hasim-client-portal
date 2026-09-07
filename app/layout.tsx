@@ -4,8 +4,17 @@ import "./portal/portal.css";
 import "./portal.css";
 
 export const metadata: Metadata = {
-  title: "Hasim Client Portal",
-  description: "Kundenportal für Projekte, Dateien, Notizen und Nachrichten",
+  title: {
+    default: "Hasim Client Portal",
+    template: "%s | Hasim Client Portal",
+  },
+  description: "Geschützter Kundenbereich für Projekte, Dateien, Anforderungen und Nachrichten.",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false, noimageindex: true },
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

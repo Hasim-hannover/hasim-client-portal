@@ -11,7 +11,7 @@ export async function login(formData: FormData) {
     redirect("/login?error=Bitte%20E-Mail%20und%20Passwort%20eingeben.");
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error || !data.user) {
