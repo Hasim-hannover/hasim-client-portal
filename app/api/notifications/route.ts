@@ -12,6 +12,19 @@ type NotificationRequest = {
   eventId?: string;
 };
 
+type Recipient = "owner" | "customer";
+type DeliveryKind = "upload_owner" | "upload_customer" | "message_owner" | "message_customer";
+
+type DeliveryResult = {
+  recipient: Recipient;
+  deliveryKind: DeliveryKind;
+  recipientEmail: string;
+  ok: boolean;
+  status: number;
+  error?: string;
+  messageId?: string;
+};
+
 const categoryLabels: Record<string, string> = {
   document: "Dokumente & PDF",
   image: "Bilder & Grafiken",
@@ -27,6 +40,29 @@ function layout(content: string) {
       <p style="margin-top:28px;color:#6b7280;font-size:13px">Diese Nachricht wurde automatisch vom Kundenportal versendet.</p>
     </div>
   `;
+}
+
+async function runDelivery(args: {
+  recipient: Recipient;
+  deliveryKind: DeliveryKind;
+  recipientEmail: string;
+  subject: string;
+  html: string;
+  idempotencyKey: string;
+}): Promise<DeliveryResult> {
+  const result = await sendTransactionalEmail({
+    to: args.recipientEmail,
+    subject: args.subject,
+    html: args.html,
+    idempotencyKey: args.idempotencyKey,
+  });
+
+  return {
+    recipient: args.recipient,
+    deliveryKind: args.deliveryKind,
+    recipientEmail: args.recipientEmail,
+    ...result,
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -73,7 +109,7 @@ export async function POST(request: NextRequest) {
   }
 
   const senderIsCustomer = project.client_id === user.id;
-  const sendJobs: Array<Promise<{ recipient: "owner" | "customer"; ok: boolean; status: number; error?: string }>> = [];
+  const sendJobs: Array<Promise<DeliveryResult>> = [];
 
   if (kind === "upload") {
     const { data: files, error: filesError } = await supabase
@@ -103,12 +139,14 @@ export async function POST(request: NextRequest) {
       `);
 
       sendJobs.push(
-        sendTransactionalEmail({
-          to: ownerEmail,
+        runDelivery({
+          recipient: "owner",
+          deliveryKind: "upload_owner",
+          recipientEmail: ownerEmail,
           subject: `[${project.name}] ${fileCount} neue ${fileCount === 1 ? "Datei" : "Dateien"}`,
           html: ownerHtml,
           idempotencyKey: `portal-upload-owner-${eventId}`,
-        }).then((result) => ({ recipient: "owner" as const, ...result })),
+        }),
       );
     }
 
@@ -128,12 +166,14 @@ export async function POST(request: NextRequest) {
           `);
 
       sendJobs.push(
-        sendTransactionalEmail({
-          to: customerEmail,
+        runDelivery({
+          recipient: "customer",
+          deliveryKind: "upload_customer",
+          recipientEmail: customerEmail,
           subject: senderIsCustomer ? `Upload bestätigt – ${project.name}` : `Neue Dateien – ${project.name}`,
           html: customerHtml,
           idempotencyKey: `portal-upload-customer-${eventId}`,
-        }).then((result) => ({ recipient: "customer" as const, ...result })),
+        }),
       );
     }
   }
@@ -159,12 +199,14 @@ export async function POST(request: NextRequest) {
       `);
 
       sendJobs.push(
-        sendTransactionalEmail({
-          to: ownerEmail,
+        runDelivery({
+          recipient: "owner",
+          deliveryKind: "message_owner",
+          recipientEmail: ownerEmail,
           subject: `[${project.name}] Neue Projektnotiz`,
           html: ownerHtml,
           idempotencyKey: `portal-message-owner-${eventId}`,
-        }).then((result) => ({ recipient: "owner" as const, ...result })),
+        }),
       );
     }
 
@@ -182,18 +224,42 @@ export async function POST(request: NextRequest) {
           `);
 
       sendJobs.push(
-        sendTransactionalEmail({
-          to: customerEmail,
+        runDelivery({
+          recipient: "customer",
+          deliveryKind: "message_customer",
+          recipientEmail: customerEmail,
           subject: senderIsCustomer ? `Nachricht bestätigt – ${project.name}` : `Neue Nachricht – ${project.name}`,
           html: customerHtml,
           idempotencyKey: `portal-message-customer-${eventId}`,
-        }).then((result) => ({ recipient: "customer" as const, ...result })),
+        }),
       );
     }
   }
 
   const results = await Promise.all(sendJobs);
   const failed = results.filter((result) => !result.ok);
+
+  if (results.length) {
+    const { error: logError } = await supabase.from("notification_deliveries").insert(
+      results.map((result) => ({
+        actor_id: user.id,
+        project_id: projectId,
+        event_id: eventId,
+        kind: result.deliveryKind,
+        recipient_type: result.recipient,
+        recipient_email: result.recipientEmail,
+        provider: "brevo",
+        provider_status: result.status,
+        provider_message_id: result.messageId ?? null,
+        ok: result.ok,
+        error: result.error ?? null,
+      })),
+    );
+
+    if (logError) {
+      console.error("Notification delivery log failed", logError.message);
+    }
+  }
 
   return NextResponse.json(
     {
