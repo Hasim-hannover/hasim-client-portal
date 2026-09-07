@@ -21,29 +21,20 @@ export async function GET(request: NextRequest) {
   redirectTo.pathname = next;
   redirectTo.search = "";
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
-      return NextResponse.redirect(redirectTo);
-    }
+    if (!error) return NextResponse.redirect(redirectTo);
   }
 
   if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash: tokenHash,
-    });
-
-    if (!error) {
-      return NextResponse.redirect(redirectTo);
-    }
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    if (!error) return NextResponse.redirect(redirectTo);
   }
 
   const errorUrl = request.nextUrl.clone();
   errorUrl.pathname = "/forgot-password";
-  errorUrl.search = "?error=Der%20Reset-Link%20ist%20ung%C3%BCltig%20oder%20abgelaufen.";
+  errorUrl.search = "?error=Der%20Link%20ist%20ung%C3%BCltig%20oder%20abgelaufen.";
   return NextResponse.redirect(errorUrl);
 }
