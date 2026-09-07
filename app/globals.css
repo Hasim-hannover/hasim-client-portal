@@ -380,6 +380,39 @@ h1 {
   font-size: 14px;
 }
 
+.form-success {
+  margin-top: 20px;
+  padding: 13px 14px;
+  border: 1px solid #b7dfc8;
+  border-radius: 10px;
+  background: #f0faf4;
+  color: #176b3a;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.password-help-row,
+.login-link-row {
+  font-size: 14px;
+}
+
+.password-help-row {
+  margin-top: -4px;
+  text-align: right;
+}
+
+.login-link-row {
+  margin: 22px 0 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+.password-help-row a,
+.login-link-row a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 1050px) {
   .upload-form {
     grid-template-columns: 1fr 1fr;
