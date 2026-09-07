@@ -13,8 +13,8 @@ type EmailResult = {
 
 export function emailIsConfigured() {
   return Boolean(
-    process.env.RESEND_API_KEY &&
-      process.env.RESEND_FROM_EMAIL &&
+    process.env.BREVO_API_KEY &&
+      process.env.BREVO_FROM_EMAIL &&
       process.env.NOTIFICATION_EMAIL,
   );
 }
@@ -29,25 +29,32 @@ export function escapeHtml(value: string) {
 }
 
 export async function sendTransactionalEmail(input: EmailInput): Promise<EmailResult> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+  const apiKey = process.env.BREVO_API_KEY;
+  const fromEmail = process.env.BREVO_FROM_EMAIL;
+  const fromName = process.env.BREVO_FROM_NAME || "Hasim Üner";
 
-  if (!apiKey || !from) {
+  if (!apiKey || !fromEmail) {
     return { ok: false, status: 503, error: "E-Mail-Versand ist noch nicht konfiguriert." };
   }
 
-  const response = await fetch("https://api.resend.com/emails", {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "api-key": apiKey,
+      Accept: "application/json",
       "Content-Type": "application/json",
-      "Idempotency-Key": input.idempotencyKey,
     },
     body: JSON.stringify({
-      from,
-      to: [input.to],
+      sender: {
+        email: fromEmail,
+        name: fromName,
+      },
+      to: [{ email: input.to }],
       subject: input.subject,
-      html: input.html,
+      htmlContent: input.html,
+      headers: {
+        "Idempotency-Key": input.idempotencyKey,
+      },
     }),
     cache: "no-store",
   });
