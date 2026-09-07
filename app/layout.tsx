@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./portal/portal.css";
+import "./portal.css";
 
 export const metadata: Metadata = {
   title: "Hasim Client Portal",
