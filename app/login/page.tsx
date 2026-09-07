@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { login } from "./actions";
 
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams?: { error?: string };
+  searchParams?: { error?: string; message?: string };
 }) {
   return (
     <main className="login-shell">
@@ -14,6 +15,10 @@ export default function LoginPage({
           Melde dich an, um Dateien und Projektmaterial sicher auszutauschen.
         </p>
 
+        {searchParams?.message ? (
+          <div className="form-success" role="status">{searchParams.message}</div>
+        ) : null}
+
         <form action={login} className="login-form">
           <label>
             E-Mail
@@ -23,6 +28,10 @@ export default function LoginPage({
             Passwort
             <input type="password" name="password" autoComplete="current-password" required />
           </label>
+
+          <div className="password-help-row">
+            <Link href="/forgot-password">Passwort vergessen?</Link>
+          </div>
 
           {searchParams?.error ? (
             <p className="form-error" role="alert">{searchParams.error}</p>
