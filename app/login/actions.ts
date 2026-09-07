@@ -12,16 +12,22 @@ export async function login(formData: FormData) {
   }
 
   const supabase = createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) {
+  if (error || !data.user) {
     const message =
-      error.code === "invalid_credentials" || error.message === "Invalid login credentials"
+      error?.code === "invalid_credentials" || error?.message === "Invalid login credentials"
         ? "E-Mail oder Passwort stimmt nicht."
-        : `Login fehlgeschlagen: ${error.message}`;
+        : `Login fehlgeschlagen: ${error?.message ?? "Unbekannter Fehler"}`;
 
     redirect(`/login?error=${encodeURIComponent(message)}`);
   }
 
-  redirect("/portal");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", data.user.id)
+    .single();
+
+  redirect(profile?.role === "admin" ? "/admin" : "/portal");
 }
