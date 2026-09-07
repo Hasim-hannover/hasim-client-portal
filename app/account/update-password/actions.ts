@@ -15,7 +15,7 @@ export async function updatePassword(formData: FormData) {
     redirect("/account/update-password?error=Die%20Passw%C3%B6rter%20stimmen%20nicht%20%C3%BCberein.");
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
 
   if (!userData.user) {
