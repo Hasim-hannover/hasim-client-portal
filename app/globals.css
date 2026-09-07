@@ -28,7 +28,8 @@ a {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -159,6 +160,127 @@ h1 {
   line-height: 1.5;
 }
 
+.upload-panel,
+.files-section {
+  margin-top: 18px;
+  padding: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.upload-panel h2,
+.files-section h2 {
+  margin: 6px 0 6px;
+  font-size: 22px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.upload-form {
+  display: grid;
+  grid-template-columns: 1fr 180px 1.4fr auto;
+  gap: 14px;
+  align-items: end;
+  margin-top: 20px;
+}
+
+.upload-form label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.upload-form select,
+.upload-form input[type="file"] {
+  width: 100%;
+  min-height: 43px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 11px;
+  background: #fff;
+  color: var(--text);
+}
+
+.primary-button,
+.secondary-button {
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.primary-button {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+}
+
+.primary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+}
+
+.upload-status {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.file-list {
+  display: grid;
+}
+
+.file-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.file-row:first-child {
+  border-top: 0;
+}
+
+.file-row strong,
+.file-row span {
+  display: block;
+}
+
+.file-row span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty-state {
+  padding: 18px;
+  border-radius: 12px;
+  background: #f7f8f9;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .status {
   margin-top: 18px;
   padding: 18px 20px;
@@ -235,7 +357,9 @@ h1 {
   color: var(--text);
 }
 
-.login-form input:focus {
+.login-form input:focus,
+.upload-form select:focus,
+.upload-form input:focus {
   outline: 2px solid #111318;
   outline-offset: 1px;
 }
@@ -256,6 +380,12 @@ h1 {
   font-size: 14px;
 }
 
+@media (max-width: 1050px) {
+  .upload-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .portal-shell {
     grid-template-columns: 1fr;
@@ -269,7 +399,15 @@ h1 {
     padding: 24px;
   }
 
-  .card-grid {
+  .card-grid,
+  .upload-form {
     grid-template-columns: 1fr;
+  }
+
+  .file-row,
+  .status,
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
