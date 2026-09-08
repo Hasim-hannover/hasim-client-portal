@@ -1,7 +1,8 @@
 "use client";
 
-import { DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, CloudUpload, FileImage, FileText, LoaderCircle, TriangleAlert, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -40,6 +41,22 @@ function fileTypeLabel(file: File) {
   return extension || (file.type ? file.type.split("/").pop()?.toUpperCase() : "DATEI") || "DATEI";
 }
 
+function FileThumbnail({ file }: { file: File }) {
+  const [previewUrl] = useState(() => file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  if (previewUrl) {
+    return <Image src={previewUrl} alt="" width={42} height={42} unoptimized />;
+  }
+
+  return file.type.startsWith("image/") ? <FileImage size={17} aria-hidden="true" /> : <FileText size={17} aria-hidden="true" />;
+}
+
 export function UploadPanel({
   projects,
   requests = [],
@@ -67,7 +84,6 @@ export function UploadPanel({
   const [requestId, setRequestId] = useState(initialRequest?.id ?? "");
   const [category, setCategory] = useState<Category>("document");
   const [files, setFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
   const [tone, setTone] = useState<FeedbackTone>("neutral");
@@ -77,15 +93,6 @@ export function UploadPanel({
   const [currentUploadFile, setCurrentUploadFile] = useState("");
   const projectActions = actions.filter((action) => action.projectId === projectId && action.type === "upload" && !["done", "approved"].includes(action.status));
   const projectRequests = requests.filter((request) => request.projectId === projectId && request.status !== "done");
-
-  useEffect(() => {
-    const urls: Record<string, string> = {};
-    files.forEach((file) => {
-      if (file.type.startsWith("image/")) urls[fileKey(file)] = URL.createObjectURL(file);
-    });
-    setPreviewUrls(urls);
-    return () => Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
-  }, [files]);
 
   function setFeedback(text: string, nextTone: FeedbackTone = "neutral") {
     setStatus(text);
@@ -284,19 +291,14 @@ export function UploadPanel({
 
         {files.length ? (
           <ul className="selected-files premium-selected-files" aria-label="Ausgewählte Dateien">
-            {files.map((file) => {
-              const previewUrl = previewUrls[fileKey(file)];
-              return (
-                <li key={fileKey(file)}>
-                  <span className="file-preview" aria-hidden="true">
-                    {previewUrl ? <img src={previewUrl} alt="" /> : file.type.startsWith("image/") ? <FileImage size={17} /> : <FileText size={17} />}
-                  </span>
-                  <span className="selected-file-main"><strong>{file.name}</strong><small>{formatBytes(file.size)}</small></span>
-                  <span className="file-type-badge">{fileTypeLabel(file)}</span>
-                  <button className="icon-button compact-icon-button" type="button" onClick={() => removeFile(file)} disabled={uploading} aria-label={`${file.name} aus Auswahl entfernen`}><X size={15} aria-hidden="true" /></button>
-                </li>
-              );
-            })}
+            {files.map((file) => (
+              <li key={fileKey(file)}>
+                <span className="file-preview" aria-hidden="true"><FileThumbnail file={file} /></span>
+                <span className="selected-file-main"><strong>{file.name}</strong><small>{formatBytes(file.size)}</small></span>
+                <span className="file-type-badge">{fileTypeLabel(file)}</span>
+                <button className="icon-button compact-icon-button" type="button" onClick={() => removeFile(file)} disabled={uploading} aria-label={`${file.name} aus Auswahl entfernen`}><X size={15} aria-hidden="true" /></button>
+              </li>
+            ))}
           </ul>
         ) : null}
 
