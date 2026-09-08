@@ -5,6 +5,7 @@ import "./portal.css";
 import "./portal-v2.css";
 import "./premium-polish.css";
 import "./communication-health.css";
+import { PortalUnreadBanner } from "./portal-unread-banner";
 
 export const metadata: Metadata = {
   title: {
@@ -23,7 +24,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="de">
-      <body>{children}</body>
+      <body>
+        <PortalUnreadBanner />
+        {children}
+      </body>
     </html>
   );
 }
