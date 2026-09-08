@@ -6,7 +6,9 @@ import "./portal-v2.css";
 import "./premium-polish.css";
 import "./communication-health.css";
 import "./unread-banner.css";
+import "./legal.css";
 import { PortalUnreadBanner } from "./portal-unread-banner";
+import { LegalFooter } from "./legal-footer";
 
 export const metadata: Metadata = {
   title: {
@@ -28,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <PortalUnreadBanner />
         {children}
+        <LegalFooter />
       </body>
     </html>
   );
