@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/server";
-import { emailIsConfigured, escapeHtml, sendTransactionalEmail } from "@/lib/notifications/email";
+import { emailIsConfigured, sendTransactionalEmail } from "@/lib/notifications/email";
+import { emailFileList, emailInfoCard, emailQuote, emailShell } from "@/lib/notifications/templates";
 
 type NotificationRequest = {
   kind?: "upload" | "message";
@@ -27,18 +28,6 @@ const categoryLabels: Record<string, string> = {
   video: "Videos",
   other: "Sonstiges",
 };
-
-function layout(content: string) {
-  const portalUrl = `${getAppUrl()}/portal`;
-  return `
-    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111318;max-width:620px;margin:0 auto">
-      <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:20px">Hasim Client Portal</div>
-      ${content}
-      <p style="margin:24px 0"><a href="${portalUrl}" style="display:inline-block;padding:11px 16px;border-radius:8px;background:#111318;color:#fff;text-decoration:none;font-weight:700">Kundenportal öffnen</a></p>
-      <p style="margin-top:28px;color:#6b7280;font-size:13px">Diese Nachricht wurde automatisch vom Kundenportal versendet.</p>
-    </div>
-  `;
-}
 
 async function runDelivery(args: {
   recipient: Recipient;
@@ -90,12 +79,14 @@ export async function POST(request: NextRequest) {
   if (!emailIsConfigured() || !ownerEmail) return NextResponse.json({ configured: false, sent: 0 });
 
   const senderIsCustomer = project.client_id === user.id;
+  const portalUrl = `${getAppUrl()}/portal`;
+  const adminUrl = `${getAppUrl()}/admin/ops`;
   const sendJobs: Array<Promise<DeliveryResult>> = [];
 
   if (kind === "upload") {
     const { data: files, error: filesError } = await supabase
       .from("project_files")
-      .select("file_name, category, note, request_id")
+      .select("file_name, category, note, request_id, action_id")
       .eq("project_id", projectId)
       .eq("uploader_id", user.id)
       .eq("upload_id", eventId)
@@ -103,18 +94,19 @@ export async function POST(request: NextRequest) {
 
     if (filesError || !files?.length) return NextResponse.json({ error: "Upload nicht gefunden." }, { status: 404 });
 
+    const actionId = files.find((file) => file.action_id)?.action_id ?? null;
     const requestId = files.find((file) => file.request_id)?.request_id ?? null;
-    const { data: materialRequest } = requestId
-      ? await supabase.from("project_requests").select("title").eq("id", requestId).single()
-      : { data: null };
+    const [{ data: action }, { data: materialRequest }] = await Promise.all([
+      actionId ? supabase.from("project_actions").select("title").eq("id", actionId).single() : Promise.resolve({ data: null }),
+      requestId ? supabase.from("project_requests").select("title").eq("id", requestId).single() : Promise.resolve({ data: null }),
+    ]);
 
+    const assignmentTitle = action?.title || materialRequest?.title || null;
     const category = categoryLabels[files[0].category] ?? "Dateien";
     const note = files.find((file) => file.note?.trim())?.note?.trim() ?? "";
-    const fileList = files.map((file) => `<li>${escapeHtml(file.file_name)}</li>`).join("");
+    const fileNames = files.map((file) => file.file_name);
     const fileCount = files.length;
-    const requestBlock = materialRequest?.title
-      ? `<p><strong>Zuordnung:</strong> ${escapeHtml(materialRequest.title)}</p>`
-      : "";
+    const commonBody = `${emailInfoCard("Projekt", project.name)}${assignmentTitle ? emailInfoCard("Zuordnung", assignmentTitle) : ""}${emailInfoCard("Bereich", category)}${emailFileList(fileNames)}${note ? emailInfoCard("Notiz", note) : ""}`;
 
     if (senderIsCustomer) {
       sendJobs.push(runDelivery({
@@ -122,36 +114,36 @@ export async function POST(request: NextRequest) {
         deliveryKind: "upload_owner",
         recipientEmail: ownerEmail,
         subject: `[${project.name}] ${fileCount} neue ${fileCount === 1 ? "Datei" : "Dateien"}`,
-        html: layout(`
-          <h1 style="font-size:24px;margin:0 0 16px">Neue Dateien in „${escapeHtml(project.name)}“</h1>
-          <p><strong>${escapeHtml(customerName)}</strong> hat ${fileCount} ${fileCount === 1 ? "Datei" : "Dateien"} hochgeladen.</p>
-          ${requestBlock}<p><strong>Bereich:</strong> ${escapeHtml(category)}</p><ul>${fileList}</ul>
-          ${note ? `<p><strong>Notiz:</strong><br>${escapeHtml(note).replaceAll("\n", "<br>")}</p>` : ""}
-        `),
+        html: emailShell({
+          preheader: `${customerName} hat neue Dateien für ${project.name} hochgeladen.`,
+          eyebrow: "Hasim Client Portal · Kundenupload",
+          title: `${fileCount} neue ${fileCount === 1 ? "Datei" : "Dateien"}`,
+          intro: `${customerName} hat neue Projektdateien hochgeladen.`,
+          bodyHtml: commonBody,
+          ctaLabel: "Im Admin prüfen",
+          ctaUrl: adminUrl,
+        }),
         idempotencyKey: `portal-upload-owner-${eventId}`,
       }));
     }
 
     if (customerEmail) {
-      const customerHtml = senderIsCustomer
-        ? layout(`
-            <h1 style="font-size:24px;margin:0 0 16px">Upload erfolgreich</h1>
-            <p>Deine ${fileCount === 1 ? "Datei wurde" : "Dateien wurden"} für <strong>${escapeHtml(project.name)}</strong> erfolgreich hochgeladen.</p>
-            ${requestBlock}<p><strong>Hasim Üner wurde automatisch benachrichtigt.</strong></p>
-            ${note ? `<p>Deine Notiz:<br>${escapeHtml(note).replaceAll("\n", "<br>")}</p>` : ""}
-          `)
-        : layout(`
-            <h1 style="font-size:24px;margin:0 0 16px">Neue Dateien verfügbar</h1>
-            <p>Für <strong>${escapeHtml(project.name)}</strong> wurden ${fileCount} neue ${fileCount === 1 ? "Datei" : "Dateien"} bereitgestellt.</p>
-            ${requestBlock}<ul>${fileList}</ul>${note ? `<p><strong>Notiz:</strong><br>${escapeHtml(note).replaceAll("\n", "<br>")}</p>` : ""}
-          `);
-
       sendJobs.push(runDelivery({
         recipient: "customer",
         deliveryKind: "upload_customer",
         recipientEmail: customerEmail,
         subject: senderIsCustomer ? `Upload bestätigt – ${project.name}` : `Neue Dateien – ${project.name}`,
-        html: customerHtml,
+        html: emailShell({
+          preheader: senderIsCustomer ? `Dein Upload für ${project.name} war erfolgreich.` : `Neue Projektdateien sind für ${project.name} verfügbar.`,
+          eyebrow: senderIsCustomer ? "Hasim Client Portal · Upload bestätigt" : "Hasim Client Portal · Neue Dateien",
+          title: senderIsCustomer ? "Upload erfolgreich." : "Neue Dateien sind verfügbar.",
+          intro: senderIsCustomer
+            ? "Deine Dateien wurden sicher gespeichert. Hasim wurde automatisch informiert."
+            : "Für dein Projekt wurden neue Dateien bereitgestellt.",
+          bodyHtml: commonBody,
+          ctaLabel: "Dateien im Portal öffnen",
+          ctaUrl: `${portalUrl}#dateien`,
+        }),
         idempotencyKey: `portal-upload-customer-${eventId}`,
       }));
     }
@@ -173,11 +165,15 @@ export async function POST(request: NextRequest) {
         deliveryKind: "message_owner",
         recipientEmail: ownerEmail,
         subject: `[${project.name}] Neue Projektnachricht`,
-        html: layout(`
-          <h1 style="font-size:24px;margin:0 0 16px">Neue Projektnachricht</h1>
-          <p><strong>${escapeHtml(customerName)}</strong> hat zu <strong>${escapeHtml(project.name)}</strong> geschrieben:</p>
-          <div style="padding:14px 16px;background:#f5f6f8;border-radius:10px">${escapeHtml(message.body).replaceAll("\n", "<br>")}</div>
-        `),
+        html: emailShell({
+          preheader: `${customerName} hat eine neue Projektnachricht gesendet.`,
+          eyebrow: "Hasim Client Portal · Nachricht",
+          title: "Neue Nachricht vom Kunden.",
+          intro: `${customerName} hat zu ${project.name} geschrieben:`,
+          bodyHtml: `${emailInfoCard("Projekt", project.name)}${emailQuote(message.body)}`,
+          ctaLabel: "Nachricht beantworten",
+          ctaUrl: adminUrl,
+        }),
         idempotencyKey: `portal-message-owner-${eventId}`,
       }));
     }
@@ -188,9 +184,17 @@ export async function POST(request: NextRequest) {
         deliveryKind: "message_customer",
         recipientEmail: customerEmail,
         subject: senderIsCustomer ? `Nachricht bestätigt – ${project.name}` : `Neue Nachricht – ${project.name}`,
-        html: senderIsCustomer
-          ? layout(`<h1 style="font-size:24px;margin:0 0 16px">Nachricht gespeichert</h1><p>Deine Nachricht zu <strong>${escapeHtml(project.name)}</strong> wurde gespeichert.</p><p><strong>Hasim Üner wurde automatisch benachrichtigt.</strong></p>`)
-          : layout(`<h1 style="font-size:24px;margin:0 0 16px">Neue Nachricht zu deinem Projekt</h1><p>Zu <strong>${escapeHtml(project.name)}</strong> gibt es eine neue Nachricht:</p><div style="padding:14px 16px;background:#f5f6f8;border-radius:10px">${escapeHtml(message.body).replaceAll("\n", "<br>")}</div>`),
+        html: emailShell({
+          preheader: senderIsCustomer ? `Deine Nachricht zu ${project.name} wurde gespeichert.` : `Neue Nachricht zu ${project.name}.`,
+          eyebrow: "Hasim Client Portal · Kommunikation",
+          title: senderIsCustomer ? "Nachricht gespeichert." : "Neue Projektnachricht.",
+          intro: senderIsCustomer
+            ? "Deine Nachricht wurde im Projektverlauf gespeichert und Hasim automatisch informiert."
+            : `Es gibt ein neues Update zu ${project.name}:`,
+          bodyHtml: `${emailInfoCard("Projekt", project.name)}${emailQuote(message.body)}`,
+          ctaLabel: "Kommunikation öffnen",
+          ctaUrl: `${portalUrl}#nachrichten`,
+        }),
         idempotencyKey: `portal-message-customer-${eventId}`,
       }));
     }
