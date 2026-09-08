@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { getAppUrl } from "@/lib/app-url";
 import { escapeHtml, sendTransactionalEmail } from "@/lib/notifications/email";
+import { buildAuthConfirmUrl, emailInfoCard, emailShell } from "@/lib/notifications/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -71,6 +72,7 @@ async function sendCustomerWorkflowEmail(
     subject: string;
     headline: string;
     bodyHtml: string;
+    ctaLabel?: string;
   },
 ) {
   const { supabase, user } = context;
@@ -94,16 +96,15 @@ async function sendCustomerWorkflowEmail(
   const result = await sendTransactionalEmail({
     to: profile.email,
     subject: input.subject,
-    html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111318;max-width:620px;margin:0 auto">
-        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:20px">Hasim Client Portal</div>
-        <h1 style="font-size:24px;margin:0 0 16px">${escapeHtml(input.headline)}</h1>
-        <p>Hallo ${escapeHtml(profile.full_name || "")},</p>
-        ${input.bodyHtml}
-        <p style="margin:24px 0"><a href="${portalUrl}" style="display:inline-block;padding:11px 16px;border-radius:8px;background:#111318;color:#fff;text-decoration:none;font-weight:700">Kundenportal öffnen</a></p>
-        <p style="margin-top:28px;color:#6b7280;font-size:13px">Diese Nachricht wurde automatisch vom Kundenportal versendet.</p>
-      </div>
-    `,
+    html: emailShell({
+      preheader: input.subject,
+      eyebrow: `Hasim Client Portal · ${project.name}`,
+      title: input.headline,
+      intro: profile.full_name ? `Hallo ${profile.full_name},` : "Hallo,",
+      bodyHtml: input.bodyHtml,
+      ctaLabel: input.ctaLabel ?? "Kundenportal öffnen",
+      ctaUrl: portalUrl,
+    }),
     idempotencyKey: `portal-${input.kind}-${input.eventId}`,
   });
 
@@ -151,7 +152,7 @@ export async function updateProjectPhase(formData: FormData) {
     kind: "phase_customer",
     subject: `Projektstatus aktualisiert – ${project.name}`,
     headline: `Neue Projektphase: ${phaseLabels[phase] ?? phase}`,
-    bodyHtml: `<p>Der Status von <strong>${escapeHtml(project.name)}</strong> wurde aktualisiert.</p>${phaseNote ? `<p><strong>Aktueller Hinweis:</strong><br>${escapeHtml(phaseNote).replaceAll("\n", "<br>")}</p>` : ""}`,
+    bodyHtml: `${emailInfoCard("Projekt", project.name)}${phaseNote ? emailInfoCard("Aktueller Hinweis", phaseNote) : ""}`,
   });
 
   adminRedirect(mail.sent ? "Projektphase aktualisiert und Kunde benachrichtigt." : `Projektphase aktualisiert. E-Mail-Hinweis: ${mail.reason}`);
@@ -201,7 +202,8 @@ export async function createProjectRequest(formData: FormData) {
     kind: "request_customer",
     subject: `Unterlagen benötigt – ${project?.name ?? "Projekt"}`,
     headline: "Neue Material-Anforderung",
-    bodyHtml: `<p>Für <strong>${escapeHtml(project?.name ?? "dein Projekt")}</strong> benötige ich noch:</p><p><strong>${escapeHtml(title)}</strong></p>${description ? `<p>${escapeHtml(description).replaceAll("\n", "<br>")}</p>` : ""}`,
+    bodyHtml: `${emailInfoCard("Projekt", project?.name ?? "Dein Projekt")}${emailInfoCard("Benötigt", title)}${description ? `<p style="margin:0;color:#4b5563">${escapeHtml(description).replaceAll("\n", "<br>")}</p>` : ""}`,
+    ctaLabel: "Anforderung öffnen",
   });
 
   adminRedirect(mail.sent ? "Material angefordert und Kunde benachrichtigt." : `Material angefordert. E-Mail-Hinweis: ${mail.reason}`);
@@ -220,35 +222,92 @@ export async function updateProjectRequestStatus(formData: FormData) {
 }
 
 export async function inviteClient(formData: FormData) {
-  await requireAdmin();
+  const context = await requireAdmin();
+  const { supabase, user } = context;
 
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const fullName = String(formData.get("fullName") ?? "").trim();
   const projectName = String(formData.get("projectName") ?? "").trim();
 
   if (!email || !fullName) adminRedirect("Bitte Name und E-Mail-Adresse angeben.", true);
+  if (fullName.length > 160 || projectName.length > 160) adminRedirect("Name oder Projektname ist zu lang.", true);
 
   const admin = getAdminClientOrRedirect();
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName },
-    redirectTo: `${getAppUrl()}/account/update-password`,
-  });
-
-  if (error || !data.user) adminRedirect(`Einladung konnte nicht versendet werden: ${error?.message ?? "Unbekannter Fehler"}`, true);
-
-  await admin.from("profiles").update({ full_name: fullName, email, role: "client" }).eq("id", data.user.id);
-
-  if (projectName) {
-    const { error: projectError } = await admin.from("projects").insert({
-      client_id: data.user.id,
-      name: projectName,
-      status: "active",
-      phase: "onboarding",
-    });
-    if (projectError) adminRedirect(`Kunde eingeladen, Projekt konnte aber nicht erstellt werden: ${projectError.message}`, true);
+  const { data: existingProfile } = await supabase.from("profiles").select("id, role").eq("email", email).maybeSingle();
+  if (existingProfile) {
+    adminRedirect("Für diese E-Mail existiert bereits ein Konto. Öffne die Kundenakte und sende dort einen neuen Zugangslink.", true);
   }
 
-  adminRedirect(projectName ? "Kunde eingeladen und Projekt angelegt." : "Kunde eingeladen.");
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { data: { full_name: fullName } },
+  });
+
+  const invitedUser = data?.user;
+  const hashedToken = data?.properties?.hashed_token;
+  if (error || !invitedUser || !hashedToken) {
+    adminRedirect(`Konto konnte nicht angelegt werden: ${error?.message ?? "Kein Einladungslink erzeugt."}`, true);
+  }
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ full_name: fullName, email, role: "client" })
+    .eq("id", invitedUser.id);
+  if (profileError) {
+    await admin.auth.admin.deleteUser(invitedUser.id).catch(() => undefined);
+    adminRedirect(`Kundenprofil konnte nicht angelegt werden: ${profileError.message}`, true);
+  }
+
+  let projectId: string | null = null;
+  if (projectName) {
+    const { data: project, error: projectError } = await admin
+      .from("projects")
+      .insert({ client_id: invitedUser.id, name: projectName, status: "active", phase: "onboarding" })
+      .select("id")
+      .single();
+    if (projectError || !project) {
+      adminRedirect(`Kunde wurde angelegt, Projekt konnte aber nicht erstellt werden: ${projectError?.message ?? "Unbekannter Fehler"}`, true);
+    }
+    projectId = project.id;
+  }
+
+  const accessUrl = buildAuthConfirmUrl(hashedToken, "invite", getAppUrl());
+  const result = await sendTransactionalEmail({
+    to: email,
+    subject: "Dein Zugang zum Hasim Client Portal",
+    html: emailShell({
+      preheader: "Dein persönlicher Zugang zum Projektbereich ist bereit.",
+      eyebrow: "Hasim Client Portal · Einladung",
+      title: "Dein Projektbereich ist bereit.",
+      intro: `Hallo ${fullName},`,
+      bodyHtml: `${projectName ? emailInfoCard("Projekt", projectName) : ""}<p style="margin:0;color:#4b5563">Über den Button legst du dein persönliches Passwort fest. Danach kannst du Projektstatus, Aufgaben, Dateien und Nachrichten zentral im Portal verwalten.</p>`,
+      ctaLabel: "Zugang einrichten",
+      ctaUrl: accessUrl,
+      secondaryText: "Der Zugangslink ist nur für dieses Kundenkonto bestimmt. Wenn du diese Einladung nicht erwartet hast, kannst du die Nachricht ignorieren.",
+    }),
+    idempotencyKey: `portal-invite-${invitedUser.id}-${crypto.randomUUID()}`,
+  });
+
+  await admin.from("notification_deliveries").insert({
+    actor_id: user.id,
+    project_id: projectId,
+    event_id: invitedUser.id,
+    kind: "invite",
+    recipient_type: "customer",
+    recipient_email: email,
+    provider: "brevo",
+    provider_status: result.status,
+    provider_message_id: result.messageId ?? null,
+    ok: result.ok,
+    error: result.error ?? null,
+  });
+
+  if (!result.ok) {
+    adminRedirect(`Kunde wurde angelegt, aber die Brevo-Einladung konnte nicht versendet werden: ${result.error ?? `HTTP ${result.status}`}`, true);
+  }
+
+  adminRedirect(projectName ? "Kunde angelegt, Projekt erstellt und Brevo-Einladung versendet." : "Kunde angelegt und Brevo-Einladung versendet.");
 }
 
 export async function sendBrevoTestEmail() {
@@ -259,14 +318,13 @@ export async function sendBrevoTestEmail() {
   const result = await sendTransactionalEmail({
     to: recipient,
     subject: "Kundenportal – Brevo Systemtest",
-    html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111318;max-width:620px;margin:0 auto">
-        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:20px">Hasim Client Portal</div>
-        <h1 style="font-size:24px;margin:0 0 16px">Brevo-Verbindung funktioniert</h1>
-        <p>Diese Testmail wurde direkt vom produktiven Kundenportal über Brevo versendet.</p>
-        <p><strong>Empfänger:</strong> ${escapeHtml(recipient)}</p>
-      </div>
-    `,
+    html: emailShell({
+      preheader: "Brevo-Verbindung des Kundenportals wurde erfolgreich getestet.",
+      eyebrow: "Hasim Client Portal · Systemtest",
+      title: "Brevo-Verbindung funktioniert.",
+      intro: "Diese Testmail wurde direkt vom produktiven Kundenportal über Brevo versendet.",
+      bodyHtml: emailInfoCard("Empfänger", recipient),
+    }),
     idempotencyKey: `portal-system-test-${crypto.randomUUID()}`,
   });
 
