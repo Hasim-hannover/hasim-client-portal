@@ -31,6 +31,7 @@ export default async function LoginPage({
         </form>
 
         <p className="login-support">Probleme mit deinem Zugang? <a href="mailto:hallo@hasimuener.de">hallo@hasimuener.de</a></p>
+        <p className="login-support">Für die Anmeldung werden nur technisch notwendige Sitzungs- und Sicherheitsdaten verwendet. <Link href="/datenschutz">Datenschutzhinweise</Link></p>
       </section>
     </main>
   );
