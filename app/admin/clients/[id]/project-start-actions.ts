@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const allowedStatuses = new Set(["open", "submitted", "verified", "not_needed"]);
@@ -12,7 +13,7 @@ async function requireAdmin() {
   if (!user) redirect("/login");
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") redirect("/portal");
-  return { supabase, user };
+  return { admin: createAdminClient(), user };
 }
 
 function backToDossier(clientId: string, message: string, error = false): never {
@@ -21,7 +22,7 @@ function backToDossier(clientId: string, message: string, error = false): never 
 }
 
 export async function updateStartRequirement(formData: FormData) {
-  const { supabase } = await requireAdmin();
+  const { admin } = await requireAdmin();
   const clientId = String(formData.get("clientId") ?? "");
   const requirementId = String(formData.get("requirementId") ?? "");
   const status = String(formData.get("status") ?? "");
@@ -32,7 +33,7 @@ export async function updateStartRequirement(formData: FormData) {
   if (adminNote.length > 1200) backToDossier(clientId, "Der interne Hinweis darf maximal 1.200 Zeichen lang sein.", true);
 
   const now = new Date().toISOString();
-  const { error } = await supabase
+  const { error } = await admin
     .from("project_start_requirements")
     .update({
       status,
@@ -50,14 +51,14 @@ export async function updateStartRequirement(formData: FormData) {
 }
 
 export async function startProject(formData: FormData) {
-  const { supabase } = await requireAdmin();
+  const { admin } = await requireAdmin();
   const clientId = String(formData.get("clientId") ?? "");
   const projectId = String(formData.get("projectId") ?? "");
   if (!clientId || !projectId) backToDossier(clientId, "Projekt fehlt.", true);
 
   const [{ data: project }, { data: requirements, error: requirementsError }] = await Promise.all([
-    supabase.from("projects").select("id, started_at").eq("id", projectId).eq("client_id", clientId).single(),
-    supabase.from("project_start_requirements").select("id, title, is_required, status").eq("project_id", projectId),
+    admin.from("projects").select("id, started_at").eq("id", projectId).eq("client_id", clientId).single(),
+    admin.from("project_start_requirements").select("id, title, is_required, status").eq("project_id", projectId),
   ]);
 
   if (!project) backToDossier(clientId, "Projekt nicht gefunden.", true);
@@ -69,7 +70,7 @@ export async function startProject(formData: FormData) {
     backToDossier(clientId, `Projektstart blockiert: ${blockers.map((item) => item.title).join(", ")}.`, true);
   }
 
-  const { error } = await supabase
+  const { error } = await admin
     .from("projects")
     .update({ started_at: new Date().toISOString(), phase: "onboarding", phase_note: "Projekt gestartet · Kick-off & Bestandsaufnahme" })
     .eq("id", projectId)
@@ -82,7 +83,7 @@ export async function startProject(formData: FormData) {
 }
 
 export async function markInvoicePayment(formData: FormData) {
-  const { supabase } = await requireAdmin();
+  const { admin } = await requireAdmin();
   const clientId = String(formData.get("clientId") ?? "");
   const projectId = String(formData.get("projectId") ?? "");
   const fileId = String(formData.get("fileId") ?? "");
@@ -90,7 +91,7 @@ export async function markInvoicePayment(formData: FormData) {
   if (!clientId || !projectId || !fileId || !["open", "paid"].includes(paymentStatus)) backToDossier(clientId, "Ungültiger Rechnungsstatus.", true);
 
   const paidAt = paymentStatus === "paid" ? new Date().toISOString() : null;
-  const { error } = await supabase
+  const { error } = await admin
     .from("project_files")
     .update({ invoice_payment_status: paymentStatus, invoice_paid_at: paidAt })
     .eq("id", fileId)
@@ -100,11 +101,12 @@ export async function markInvoicePayment(formData: FormData) {
   if (error) backToDossier(clientId, `Rechnung konnte nicht aktualisiert werden: ${error.message}`, true);
 
   if (paymentStatus === "paid") {
-    await supabase
+    const { error: requirementError } = await admin
       .from("project_start_requirements")
       .update({ status: "verified", completed_at: paidAt, updated_at: paidAt })
       .eq("project_id", projectId)
       .eq("requirement_key", "invoice_paid");
+    if (requirementError) backToDossier(clientId, `Zahlung gespeichert, Startvoraussetzung konnte aber nicht aktualisiert werden: ${requirementError.message}`, true);
   }
 
   revalidatePath(`/admin/clients/${clientId}`);
