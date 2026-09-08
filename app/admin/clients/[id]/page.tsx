@@ -1,9 +1,26 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Download, FolderKanban, Mail, MessageSquare, Phone, UploadCloud } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+const phaseLabels: Record<string, string> = {
+  onboarding: "Onboarding",
+  content: "Inhalte & Material",
+  concept: "Konzept",
+  development: "Umsetzung",
+  review: "Prüfung & Freigabe",
+  launch: "Launch",
+  completed: "Abgeschlossen",
+};
+
+const requestStatusLabels: Record<string, string> = {
+  open: "Offen",
+  submitted: "Eingereicht",
+  done: "Erledigt",
+};
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -52,18 +69,18 @@ export default async function ClientDossierPage({
     .from("projects")
     .select("id, name, status, phase, phase_note, created_at, updated_at")
     .eq("client_id", id)
-    .order("created_at", { ascending: false });
+    .order("updated_at", { ascending: false });
 
   const projectRows = projects ?? [];
   const projectIds = projectRows.map((project) => project.id);
 
-  let files: Array<{ id: string; project_id: string; file_name: string; storage_path: string; size_bytes: number | null; note: string | null; created_at: string }> = [];
+  let files: Array<{ id: string; project_id: string; uploader_id: string; file_name: string; storage_path: string; size_bytes: number | null; note: string | null; created_at: string }> = [];
   let messages: Array<{ id: string; project_id: string; sender_id: string; body: string; created_at: string }> = [];
   let requests: Array<{ id: string; project_id: string; title: string; description: string | null; status: string; created_at: string }> = [];
 
   if (projectIds.length) {
     const [filesResult, messagesResult, requestsResult] = await Promise.all([
-      supabase.from("project_files").select("id, project_id, file_name, storage_path, size_bytes, note, created_at").in("project_id", projectIds).order("created_at", { ascending: false }),
+      supabase.from("project_files").select("id, project_id, uploader_id, file_name, storage_path, size_bytes, note, created_at").in("project_id", projectIds).order("created_at", { ascending: false }),
       supabase.from("project_messages").select("id, project_id, sender_id, body, created_at").in("project_id", projectIds).order("created_at", { ascending: false }),
       supabase.from("project_requests").select("id, project_id, title, description, status, created_at").in("project_id", projectIds).order("created_at", { ascending: false }),
     ]);
@@ -82,27 +99,83 @@ export default async function ClientDossierPage({
   }
 
   const openRequests = requests.filter((request) => request.status !== "done");
+  const customerUploads = files.filter((file) => file.uploader_id === client.id);
+  const adminFiles = files.filter((file) => file.uploader_id !== client.id);
+  const latestProject = projectRows[0];
+  const displayName = client.company_name || client.full_name || "Kunde";
+
+  function FileList({ entries, emptyText }: { entries: typeof files; emptyText: string }) {
+    if (entries.length === 0) return <div className="empty-state compact-empty">{emptyText}</div>;
+
+    return (
+      <div className="admin-list">
+        {entries.map((file) => {
+          const signed = signedByPath.get(file.storage_path);
+          return (
+            <div className="admin-list-row dossier-file-row" key={file.id}>
+              <div>
+                <strong>{file.file_name}</strong>
+                <span>{projectById.get(file.project_id)?.name || "Projekt"} · {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}</span>
+                {file.note ? <p>{file.note}</p> : null}
+              </div>
+              {signed ? (
+                <a className="secondary-button button-link" href={signed}>
+                  <Download size={16} aria-hidden="true" /> Download
+                </a>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
-    <main className="main admin-main" id="main-content">
-      <div className="section-heading">
+    <main className="main admin-main client-dossier" id="main-content">
+      <div className="dossier-hero">
         <div>
           <div className="eyebrow">Kundenakte · {client.client_number || "ohne Nummer"}</div>
-          <h1>{client.company_name || client.full_name || "Kunde"}</h1>
-          <p className="lead">Alle Daten dieses Kunden an einer Stelle: Stammdaten, Projekte, Dateien, Nachrichten und Material-Anforderungen.</p>
+          <h1>{displayName}</h1>
+          <div className="dossier-contact-line" aria-label="Kontaktdaten">
+            {client.full_name && client.company_name ? <span>{client.full_name}</span> : null}
+            {client.email ? <a href={`mailto:${client.email}`}><Mail size={15} aria-hidden="true" />{client.email}</a> : null}
+            {client.phone ? <a href={`tel:${client.phone}`}><Phone size={15} aria-hidden="true" />{client.phone}</a> : null}
+          </div>
+          <p className="lead">Dein Arbeitsbereich für diesen Kunden: Projekte steuern, Kundenuploads prüfen und Kommunikation nachvollziehen.</p>
         </div>
-        <Link className="secondary-button button-link" href="/admin/clients">← Alle Kunden</Link>
+        <div className="dossier-header-actions">
+          <Link className="secondary-button button-link" href="/admin/clients">← Alle Kunden</Link>
+          <Link className="primary-button button-link" href="/admin#communication">Nachricht / Datei senden</Link>
+        </div>
       </div>
+
+      <nav className="dossier-subnav" aria-label="Bereiche der Kundenakte">
+        <a href="#overview">Übersicht</a>
+        <a href="#projects">Projekte</a>
+        <a href="#customer-files">Kundenuploads</a>
+        <a href="#messages">Nachrichten</a>
+      </nav>
 
       {message ? <div className="form-success" role="status">{message}</div> : null}
       {errorMessage ? <div className="portal-warning" role="alert">{errorMessage}</div> : null}
 
-      <section className="admin-stat-grid" aria-label="Kundenkennzahlen">
-        <article className="admin-stat-card"><strong>{projectRows.length}</strong><span>Projekte</span></article>
-        <article className="admin-stat-card"><strong>{files.length}</strong><span>Dateien</span></article>
-        <article className="admin-stat-card"><strong>{messages.length}</strong><span>Nachrichten</span></article>
+      <section className="admin-stat-grid dossier-stats" id="overview" aria-label="Kundenkennzahlen">
+        <article className="admin-stat-card"><FolderKanban size={19} aria-hidden="true" /><strong>{projectRows.length}</strong><span>Projekte</span></article>
+        <article className="admin-stat-card"><UploadCloud size={19} aria-hidden="true" /><strong>{customerUploads.length}</strong><span>Uploads vom Kunden</span></article>
+        <article className="admin-stat-card"><MessageSquare size={19} aria-hidden="true" /><strong>{messages.length}</strong><span>Nachrichten</span></article>
         <article className="admin-stat-card"><strong>{openRequests.length}</strong><span>offene Anforderungen</span></article>
       </section>
+
+      {latestProject ? (
+        <section className="dossier-current-state" aria-label="Aktueller Projektstand">
+          <div>
+            <span>Aktueller Projektstand</span>
+            <strong>{latestProject.name}</strong>
+            <small>zuletzt aktualisiert {formatDate(latestProject.updated_at)}</small>
+          </div>
+          <span className="phase-pill">{phaseLabels[latestProject.phase] ?? latestProject.phase}</span>
+        </section>
+      ) : null}
 
       <section className="admin-grid">
         <article className="admin-panel">
@@ -124,65 +197,79 @@ export default async function ClientDossierPage({
           </form>
         </article>
 
-        <article className="admin-panel">
-          <div className="eyebrow">Zugriff</div>
-          <h2>Was du sehen kannst</h2>
-          <p className="admin-hint">Du greifst nicht auf das Login des Kunden zu. Als Admin siehst du über deine eigenen Berechtigungen alle Projekte und die dazugehörigen Kundendaten. Das ist die richtige Trennung.</p>
-          <div className="system-status-list">
-            <div className="system-status-row"><div><strong>Dateien</strong><span>Alle Uploads aus allen Projekten dieses Kunden, inklusive Download.</span></div></div>
-            <div className="system-status-row"><div><strong>Nachrichten</strong><span>Komplette projektbezogene Kommunikation.</span></div></div>
-            <div className="system-status-row"><div><strong>Projektstatus</strong><span>Phase, Hinweise und offene Material-Anforderungen.</span></div></div>
+        <article className="admin-panel dossier-access-panel">
+          <div className="eyebrow">Admin-Zugriff</div>
+          <h2>Alles zum Kunden, ohne Kunden-Login</h2>
+          <p className="admin-hint">Du arbeitest mit deinem eigenen Admin-Zugang. Die Kundendaten bleiben sauber getrennt, sind für dich aber vollständig projektbezogen sichtbar.</p>
+          <div className="dossier-access-list">
+            <div><UploadCloud size={18} aria-hidden="true" /><span><strong>{customerUploads.length} Kundenuploads</strong><small>Alle vom Kunden hochgeladenen Dateien.</small></span></div>
+            <div><Download size={18} aria-hidden="true" /><span><strong>{adminFiles.length} bereitgestellte Dateien</strong><small>Dateien, die du für den Kunden hochgeladen hast.</small></span></div>
+            <div><MessageSquare size={18} aria-hidden="true" /><span><strong>{messages.length} Nachrichten</strong><small>Projektbezogene Kommunikation in einer Historie.</small></span></div>
           </div>
         </article>
       </section>
 
-      <section className="admin-panel">
+      <section className="admin-panel" id="projects">
         <div className="section-heading"><div><div className="eyebrow">Projekte</div><h2>Projekte dieses Kunden</h2></div><span className="badge">{projectRows.length}</span></div>
         {projectRows.length === 0 ? <div className="empty-state">Noch keine Projekte.</div> : (
           <div className="admin-project-list">
-            {projectRows.map((project) => (
-              <article className="admin-project-card" key={project.id}>
-                <div className="admin-project-head"><div><strong>{project.name}</strong><span>angelegt {formatDate(project.created_at)} · aktualisiert {formatDate(project.updated_at)}</span></div><span className="phase-pill">{project.phase}</span></div>
-                {project.phase_note ? <p className="phase-note">{project.phase_note}</p> : null}
-                <div className="admin-request-list">
-                  {requests.filter((request) => request.project_id === project.id).map((request) => (
-                    <div className="admin-request-row" key={request.id}><div><strong>{request.title}</strong><span>{request.status}</span>{request.description ? <p>{request.description}</p> : null}</div></div>
-                  ))}
-                </div>
-              </article>
-            ))}
+            {projectRows.map((project) => {
+              const projectRequests = requests.filter((request) => request.project_id === project.id);
+              return (
+                <article className="admin-project-card" key={project.id}>
+                  <div className="admin-project-head">
+                    <div><strong>{project.name}</strong><span>angelegt {formatDate(project.created_at)} · aktualisiert {formatDate(project.updated_at)}</span></div>
+                    <span className="phase-pill">{phaseLabels[project.phase] ?? project.phase}</span>
+                  </div>
+                  {project.phase_note ? <p className="phase-note">{project.phase_note}</p> : null}
+                  {projectRequests.length ? (
+                    <div className="admin-request-list">
+                      {projectRequests.map((request) => (
+                        <div className="admin-request-row" key={request.id}>
+                          <div><strong>{request.title}</strong><span>{requestStatusLabels[request.status] ?? request.status}</span>{request.description ? <p>{request.description}</p> : null}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
 
-      <section className="admin-grid">
+      <section className="admin-grid dossier-files-grid" id="customer-files">
         <article className="admin-panel">
-          <div className="section-heading"><div><div className="eyebrow">Dateien</div><h2>Uploads des Kunden</h2></div><span className="badge">{files.length}</span></div>
-          {files.length === 0 ? <div className="empty-state">Noch keine Dateien.</div> : (
-            <div className="admin-list">
-              {files.map((file) => {
-                const signed = signedByPath.get(file.storage_path);
-                return (
-                  <div className="admin-list-row" key={file.id}>
-                    <div><strong>{file.file_name}</strong><span>{projectById.get(file.project_id)?.name || "Projekt"} · {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}</span>{file.note ? <p>{file.note}</p> : null}</div>
-                    {signed ? <a className="secondary-button button-link" href={signed}>Download</a> : null}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="section-heading"><div><div className="eyebrow">Vom Kunden</div><h2>Kundenuploads</h2></div><span className="badge">{customerUploads.length}</span></div>
+          <p className="admin-hint">Hier stehen ausschließlich Dateien, die dieser Kunde selbst hochgeladen hat.</p>
+          <FileList entries={customerUploads} emptyText="Der Kunde hat noch keine Dateien hochgeladen." />
         </article>
 
         <article className="admin-panel">
-          <div className="section-heading"><div><div className="eyebrow">Kommunikation</div><h2>Nachrichten</h2></div><span className="badge">{messages.length}</span></div>
-          {messages.length === 0 ? <div className="empty-state">Noch keine Nachrichten.</div> : (
-            <div className="admin-list">
-              {messages.map((entry) => (
-                <div className="admin-list-row admin-message-row" key={entry.id}><div><strong>{entry.sender_id === client.id ? client.full_name || "Kunde" : "Hasim Üner"}</strong><span>{projectById.get(entry.project_id)?.name || "Projekt"} · {formatDate(entry.created_at)}</span><p>{entry.body}</p></div></div>
-              ))}
-            </div>
-          )}
+          <div className="section-heading"><div><div className="eyebrow">Von dir</div><h2>Bereitgestellte Dateien</h2></div><span className="badge">{adminFiles.length}</span></div>
+          <p className="admin-hint">Dateien, die du dem Kunden über seine Projekte bereitgestellt hast.</p>
+          <FileList entries={adminFiles} emptyText="Du hast diesem Kunden noch keine Dateien bereitgestellt." />
         </article>
+      </section>
+
+      <section className="admin-panel" id="messages">
+        <div className="section-heading"><div><div className="eyebrow">Kommunikation</div><h2>Nachrichtenverlauf</h2></div><span className="badge">{messages.length}</span></div>
+        {messages.length === 0 ? <div className="empty-state">Noch keine Nachrichten.</div> : (
+          <div className="dossier-message-list">
+            {messages.map((entry) => {
+              const fromCustomer = entry.sender_id === client.id;
+              return (
+                <article className={`dossier-message ${fromCustomer ? "from-customer" : "from-admin"}`} key={entry.id}>
+                  <div className="dossier-message-meta">
+                    <strong>{fromCustomer ? client.full_name || "Kunde" : "Hasim Üner"}</strong>
+                    <span>{projectById.get(entry.project_id)?.name || "Projekt"} · {formatDate(entry.created_at)}</span>
+                  </div>
+                  <p>{entry.body}</p>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
     </main>
   );
