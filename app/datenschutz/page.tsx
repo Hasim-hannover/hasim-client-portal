@@ -52,10 +52,10 @@ export default function DatenschutzPage() {
         <p>Supabase wird für Authentifizierung, Datenbank, Realtime-Funktionen und privaten Dateispeicher eingesetzt. Das Projekt ist in der Region EU West (Irland) angelegt. Supabase verarbeitet Kundendaten im Rahmen der vereinbarten Auftragsverarbeitung; für eigene Nutzungs- und Abrechnungsdaten kann Supabase selbst Verantwortlicher sein.</p>
 
         <h3>Vercel</h3>
-        <p>Vercel stellt die Webanwendung und Serverfunktionen bereit. Beim Aufruf fallen technisch notwendige Verbindungs- und Bereitstellungsdaten an. Soweit personenbezogene Kundendaten im Rahmen des Hostings verarbeitet werden, erfolgt dies nach den für den eingesetzten Tarif geltenden Datenschutz- und Auftragsverarbeitungsbedingungen.</p>
+        <p>Vercel stellt die Webanwendung und Serverfunktionen bereit. Beim Aufruf fallen technisch notwendige Verbindungs- und Bereitstellungsdaten an. Für den produktiven kommerziellen Betrieb ist ein für Geschäftsnutzung zugelassener Vercel-Tarif einschließlich der erforderlichen Datenschutz- und Auftragsverarbeitungsvereinbarungen einzusetzen. Ein ausschließlich für persönliche bzw. nicht-kommerzielle Nutzung vorgesehener Tarif wird nicht als geeignete Produktionsgrundlage behandelt.</p>
 
         <h3>Brevo</h3>
-        <p>Brevo wird ausschließlich für technisch notwendige Transaktions-E-Mails verwendet. Übermittelt werden die für den jeweiligen Versand erforderliche E-Mail-Adresse und ein auf den Zweck begrenzter Nachrichteninhalt. Marketingkampagnen sind nicht Bestandteil des Portals. Für E-Mails wird auf personenbezogenes Öffnungs- und Klicktracking verzichtet.</p>
+        <p>Brevo wird ausschließlich für technisch notwendige Transaktions-E-Mails verwendet. Übermittelt werden die für den jeweiligen Versand erforderliche E-Mail-Adresse und ein auf den Zweck begrenzter Nachrichteninhalt. Vertrauliche Nachrichteninhalte, Dateinamen, Upload-Notizen und Dateiinhalte werden nicht in Benachrichtigungs-E-Mails wiederholt. Marketingkampagnen sind nicht Bestandteil des Portals. Individuelles Öffnungs- und Klicktracking wird für Portal-E-Mails deaktiviert; technisch notwendige bzw. aggregierte Zustellstatistiken des Versanddienstes können dennoch anfallen.</p>
 
         <h2>7. Drittlandübermittlungen</h2>
         <p>Einzelne Dienstleister oder deren Unterauftragsverarbeiter können ihren Sitz außerhalb des Europäischen Wirtschaftsraums haben. Soweit dadurch eine Drittlandübermittlung stattfindet, erfolgt sie nur auf Grundlage der Voraussetzungen der Art. 44 ff. DSGVO, insbesondere eines Angemessenheitsbeschlusses oder geeigneter Garantien wie EU-Standardvertragsklauseln.</p>
@@ -68,7 +68,7 @@ export default function DatenschutzPage() {
         <p>Innerhalb des Projekts erhalten nur berechtigte Personen Zugriff. Kundenkonten sind voneinander getrennt; ein Kunde kann keine Daten anderer Kunden oder den Administratorbereich einsehen. Eine Weitergabe an weitere Empfänger erfolgt nur, wenn sie zur Vertragserfüllung erforderlich, gesetzlich vorgeschrieben oder anderweitig datenschutzrechtlich zulässig ist.</p>
 
         <h2>10. Sicherheit</h2>
-        <p>Das Portal setzt technische und organisatorische Schutzmaßnahmen ein. Dazu gehören verschlüsselte Übertragung per HTTPS, rollenbasierte Zugriffsrechte, Row Level Security in der Datenbank, private Dateispeicherung, zeitlich begrenzte Download-Links, getrennte Administrator- und Kundenrechte, Sicherheitsheader, No-Index-Vorgaben sowie serverseitige Autorisierungsprüfungen.</p>
+        <p>Das Portal setzt technische und organisatorische Schutzmaßnahmen ein. Dazu gehören verschlüsselte Übertragung per HTTPS, rollenbasierte Zugriffsrechte, Row Level Security in der Datenbank, private Dateispeicherung, zeitlich begrenzte Download-Links, eine serverseitige Dateityp-Begrenzung, getrennte Administrator- und Kundenrechte, Content Security Policy und weitere Sicherheitsheader, No-Index-Vorgaben, No-Store-Caching für geschützte Bereiche sowie serverseitige Autorisierungsprüfungen.</p>
         <p>Trotz sorgfältiger Absicherung kann kein internetbasierter Dienst absolute Sicherheit garantieren. Sicherheitsmaßnahmen werden deshalb fortlaufend überprüft und dem Risiko angepasst.</p>
 
         <h2>11. Deine Rechte</h2>
