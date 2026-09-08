@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Download, FolderKanban, Mail, MessageSquare, Phone, UploadCloud } from "lucide-react";
+import { Download, FolderKanban, Mail, MessageSquare, Phone, ShieldCheck, UploadCloud } from "lucide-react";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "../actions";
+import { ClientAccountActions } from "./client-account-actions";
+import { CommunicationHealth } from "./communication-health";
 
 export const dynamic = "force-dynamic";
 
@@ -134,6 +137,19 @@ export default async function ClientDossierPage({
 
   if (!client || client.role !== "client") notFound();
 
+  let accountStatus = "Status nicht verfügbar";
+  let lastSignIn: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.getUserById(id);
+    if (data.user) {
+      accountStatus = data.user.email_confirmed_at ? "Zugang aktiv" : "Einladung offen";
+      lastSignIn = data.user.last_sign_in_at ?? null;
+    }
+  } catch {
+    accountStatus = "Admin-Status nicht verfügbar";
+  }
+
   const { data: projects } = await supabase
     .from("projects")
     .select("id, name, status, phase, phase_note, created_at, updated_at")
@@ -183,8 +199,9 @@ export default async function ClientDossierPage({
             {client.full_name && client.company_name ? <span>{client.full_name}</span> : null}
             {client.email ? <a href={`mailto:${client.email}`}><Mail size={15} aria-hidden="true" />{client.email}</a> : null}
             {client.phone ? <a href={`tel:${client.phone}`}><Phone size={15} aria-hidden="true" />{client.phone}</a> : null}
+            <span className={`access-status ${accountStatus === "Zugang aktiv" ? "is-active" : "is-pending"}`}><ShieldCheck size={14} aria-hidden="true" />{accountStatus}</span>
           </div>
-          <p className="lead">Dein Arbeitsbereich für diesen Kunden: Projekte steuern, Kundenuploads prüfen und Kommunikation nachvollziehen.</p>
+          <p className="lead">Projektsteuerung, Kommunikation, Kundenuploads und Zugangsverwaltung in einer Akte.</p>
         </div>
         <div className="dossier-header-actions">
           <Link className="secondary-button button-link" href="/admin/clients">← Alle Kunden</Link>
@@ -194,8 +211,10 @@ export default async function ClientDossierPage({
 
       <nav className="dossier-subnav" aria-label="Bereiche der Kundenakte">
         <a href="#overview">Übersicht</a>
+        <a href="#access">Zugang</a>
         <a href="#projects">Projekte</a>
         <a href="#customer-files">Kundenuploads</a>
+        <a href="#communication-health">E-Mail-Status</a>
         <a href="#messages">Nachrichten</a>
       </nav>
 
@@ -220,7 +239,7 @@ export default async function ClientDossierPage({
         </section>
       ) : null}
 
-      <section className="admin-grid">
+      <section className="admin-grid" id="access">
         <article className="admin-panel">
           <div className="eyebrow">Stammdaten</div>
           <h2>Kunde identifizieren</h2>
@@ -241,9 +260,14 @@ export default async function ClientDossierPage({
         </article>
 
         <article className="admin-panel dossier-access-panel">
-          <div className="eyebrow">Admin-Zugriff</div>
-          <h2>Alles zum Kunden, ohne Kunden-Login</h2>
-          <p className="admin-hint">Du arbeitest mit deinem eigenen Admin-Zugang. Die Kundendaten bleiben sauber getrennt, sind für dich aber vollständig projektbezogen sichtbar.</p>
+          <div className="eyebrow">Konto & Sicherheit</div>
+          <h2>Kundenzugang verwalten</h2>
+          <div className="account-status-card">
+            <div><span>Status</span><strong>{accountStatus}</strong></div>
+            <div><span>Letzter Login</span><strong>{lastSignIn ? formatDate(lastSignIn) : "Noch kein Login"}</strong></div>
+          </div>
+          <p className="admin-hint">Zugangslinks werden über Brevo versendet. Kunden erhalten ausschließlich Zugriff auf ihre eigenen Projekte; Admin-Routen bleiben gesperrt.</p>
+          <ClientAccountActions clientId={client.id} clientNumber={client.client_number} displayName={displayName} />
           <div className="dossier-access-list">
             <div><UploadCloud size={18} aria-hidden="true" /><span><strong>{customerUploads.length} Kundenuploads</strong><small>Alle vom Kunden hochgeladenen Dateien.</small></span></div>
             <div><Download size={18} aria-hidden="true" /><span><strong>{adminFiles.length} bereitgestellte Dateien</strong><small>Dateien, die du für den Kunden hochgeladen hast.</small></span></div>
@@ -294,6 +318,8 @@ export default async function ClientDossierPage({
           {renderFileList(adminFiles, projectById, signedByPath, "Du hast diesem Kunden noch keine Dateien bereitgestellt.")}
         </article>
       </section>
+
+      <CommunicationHealth email={client.email} />
 
       <section className="admin-panel" id="messages">
         <div className="section-heading"><div><div className="eyebrow">Kommunikation</div><h2>Nachrichtenverlauf</h2></div><span className="badge">{messages.length}</span></div>

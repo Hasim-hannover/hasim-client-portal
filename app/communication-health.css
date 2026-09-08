@@ -1,0 +1,14 @@
+.communication-health { scroll-margin-top: 84px; }
+.delivery-summary { display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:800; }
+.delivery-summary.is-ok { background:#edf9f2;color:#20633a; }
+.delivery-summary.has-errors { background:#fff4f2;color:#9a2f25; }
+.delivery-list { display:grid;gap:8px;margin-top:16px; }
+.delivery-row { display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:flex-start;padding:12px 13px;border:1px solid var(--border);border-radius:12px;background:#fbfcfd; }
+.delivery-row.is-ok { background:#fbfdfc; }
+.delivery-row.is-error { border-color:#edc7c3;background:#fff8f7; }
+.delivery-icon { display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:#eef2f4;color:#596473; }
+.delivery-row.is-ok .delivery-icon { background:#edf9f2;color:#20633a; }
+.delivery-row.is-error .delivery-icon { background:#fff0ee;color:#9a2f25; }
+.delivery-row strong,.delivery-row span { display:block; }
+.delivery-row span { margin-top:3px;color:var(--muted);font-size:12px; }
+.delivery-row p { margin:7px 0 0;color:#8b3129;font-size:12px;line-height:1.45; }

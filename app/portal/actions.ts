@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getAppUrl } from "@/lib/app-url";
+import { sendTransactionalEmail } from "@/lib/notifications/email";
+import { emailInfoCard, emailQuote, emailShell } from "@/lib/notifications/templates";
 import { createClient } from "@/lib/supabase/server";
 
 async function requireUser() {
@@ -11,6 +14,60 @@ async function requireUser() {
   return { supabase, user };
 }
 
+async function notifyOwnerAboutAction(input: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+  actionId: string;
+  stateLabel: string;
+  note: string;
+}) {
+  const ownerEmail = process.env.NOTIFICATION_EMAIL;
+  if (!ownerEmail) return;
+
+  const { data: action } = await input.supabase
+    .from("project_actions")
+    .select("id, project_id, title, action_type, status")
+    .eq("id", input.actionId)
+    .single();
+  if (!action) return;
+
+  const [{ data: project }, { data: profile }] = await Promise.all([
+    input.supabase.from("projects").select("id, name, client_id").eq("id", action.project_id).single(),
+    input.supabase.from("profiles").select("full_name, company_name, email").eq("id", input.userId).single(),
+  ]);
+  if (!project || project.client_id !== input.userId) return;
+
+  const customerName = profile?.company_name || profile?.full_name || profile?.email || "Kunde";
+  const result = await sendTransactionalEmail({
+    to: ownerEmail,
+    subject: `[${project.name}] ${input.stateLabel}: ${action.title}`,
+    html: emailShell({
+      preheader: `${customerName} hat eine Kundenaufgabe aktualisiert.`,
+      eyebrow: "Hasim Client Portal · Kundenaktion",
+      title: input.stateLabel,
+      intro: `${customerName} hat eine Aufgabe im Projekt aktualisiert.`,
+      bodyHtml: `${emailInfoCard("Projekt", project.name)}${emailInfoCard("Aufgabe", action.title)}${input.note ? emailQuote(input.note) : ""}`,
+      ctaLabel: "Im Admin öffnen",
+      ctaUrl: `${getAppUrl()}/admin/ops`,
+    }),
+    idempotencyKey: `portal-action-response-${action.id}-${action.status}-${crypto.randomUUID()}`,
+  });
+
+  await input.supabase.from("notification_deliveries").insert({
+    actor_id: input.userId,
+    project_id: project.id,
+    event_id: action.id,
+    kind: "action_response_owner",
+    recipient_type: "owner",
+    recipient_email: ownerEmail,
+    provider: "brevo",
+    provider_status: result.status,
+    provider_message_id: result.messageId ?? null,
+    ok: result.ok,
+    error: result.error ?? null,
+  });
+}
+
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
@@ -18,27 +75,47 @@ export async function logout() {
 }
 
 export async function respondToApproval(formData: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
   const actionId = String(formData.get("actionId") ?? "");
   const decision = String(formData.get("decision") ?? "");
   const note = String(formData.get("note") ?? "").trim();
 
-  if (!actionId || !["approved", "changes_requested"].includes(decision)) return;
-  await supabase.rpc("respond_project_approval", {
+  if (!actionId || !["approved", "changes_requested"].includes(decision) || note.length > 2000) return;
+  const { data: updated, error } = await supabase.rpc("respond_project_approval", {
     p_action_id: actionId,
     p_decision: decision,
     p_note: note || null,
   });
+  if (error || !updated) return;
+
+  await notifyOwnerAboutAction({
+    supabase,
+    userId: user.id,
+    actionId,
+    stateLabel: decision === "approved" ? "Freigabe erteilt" : "Änderungen angefordert",
+    note,
+  });
   revalidatePath("/portal");
+  revalidatePath("/admin/ops");
 }
 
 export async function completeInfoAction(formData: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
   const actionId = String(formData.get("actionId") ?? "");
   const note = String(formData.get("note") ?? "").trim();
-  if (!actionId) return;
-  await supabase.rpc("complete_project_action", { p_action_id: actionId, p_note: note || null });
+  if (!actionId || note.length > 2000) return;
+  const { data: updated, error } = await supabase.rpc("complete_project_action", { p_action_id: actionId, p_note: note || null });
+  if (error || !updated) return;
+
+  await notifyOwnerAboutAction({
+    supabase,
+    userId: user.id,
+    actionId,
+    stateLabel: "Aufgabe bestätigt",
+    note,
+  });
   revalidatePath("/portal");
+  revalidatePath("/admin/ops");
 }
 
 export async function markNotificationRead(formData: FormData) {
