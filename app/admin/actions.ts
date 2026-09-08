@@ -73,6 +73,7 @@ async function sendCustomerWorkflowEmail(
     headline: string;
     bodyHtml: string;
     ctaLabel?: string;
+    ctaUrl?: string;
   },
 ) {
   const { supabase, user } = context;
@@ -92,7 +93,7 @@ async function sendCustomerWorkflowEmail(
 
   if (!profile?.email) return { sent: false, reason: "Beim Kunden ist keine E-Mail-Adresse hinterlegt." };
 
-  const portalUrl = `${getAppUrl()}/portal`;
+  const portalUrl = input.ctaUrl ?? `${getAppUrl()}/portal`;
   const result = await sendTransactionalEmail({
     to: profile.email,
     subject: input.subject,
@@ -195,7 +196,27 @@ export async function createProjectRequest(formData: FormData) {
 
   if (error || !request) adminRedirect(`Anforderung konnte nicht erstellt werden: ${error?.message ?? "Unbekannter Fehler"}`, true);
 
+  const { data: action, error: actionError } = await supabase
+    .from("project_actions")
+    .insert({
+      project_id: projectId,
+      created_by: user.id,
+      title,
+      description: description || null,
+      action_type: "upload",
+      status: "open",
+      legacy_request_id: request.id,
+    })
+    .select("id")
+    .single();
+
+  if (actionError || !action) {
+    await supabase.from("project_requests").delete().eq("id", request.id);
+    adminRedirect(`Anforderung konnte nicht als Kundenaufgabe angelegt werden: ${actionError?.message ?? "Unbekannter Fehler"}`, true);
+  }
+
   const { data: project } = await supabase.from("projects").select("name").eq("id", projectId).single();
+  const actionUrl = `${getAppUrl()}/portal?action=${encodeURIComponent(action.id)}#action-${action.id}`;
   const mail = await sendCustomerWorkflowEmail(context, {
     projectId,
     eventId: request.id,
@@ -204,6 +225,7 @@ export async function createProjectRequest(formData: FormData) {
     headline: "Neue Material-Anforderung",
     bodyHtml: `${emailInfoCard("Projekt", project?.name ?? "Dein Projekt")}${emailInfoCard("Benötigt", title)}${description ? `<p style="margin:0;color:#4b5563">${escapeHtml(description).replaceAll("\n", "<br>")}</p>` : ""}`,
     ctaLabel: "Anforderung öffnen",
+    ctaUrl: actionUrl,
   });
 
   adminRedirect(mail.sent ? "Material angefordert und Kunde benachrichtigt." : `Material angefordert. E-Mail-Hinweis: ${mail.reason}`);
@@ -218,6 +240,17 @@ export async function updateProjectRequestStatus(formData: FormData) {
 
   const { error } = await supabase.from("project_requests").update({ status }).eq("id", requestId);
   if (error) adminRedirect(`Anforderung konnte nicht aktualisiert werden: ${error.message}`, true);
+
+  const { error: actionError } = await supabase
+    .from("project_actions")
+    .update({
+      status,
+      completed_at: status === "done" ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("legacy_request_id", requestId);
+
+  if (actionError) adminRedirect(`Material-Anforderung gespeichert, Kundenaufgabe konnte aber nicht synchronisiert werden: ${actionError.message}`, true);
   adminRedirect("Material-Anforderung aktualisiert.");
 }
 
