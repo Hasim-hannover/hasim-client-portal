@@ -22,6 +22,44 @@ const requestStatusLabels: Record<string, string> = {
   done: "Erledigt",
 };
 
+type ProjectRow = {
+  id: string;
+  name: string;
+  status: string;
+  phase: string;
+  phase_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type ProjectFileRow = {
+  id: string;
+  project_id: string;
+  uploader_id: string;
+  file_name: string;
+  storage_path: string;
+  size_bytes: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+type MessageRow = {
+  id: string;
+  project_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
+type RequestRow = {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+};
+
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
@@ -36,6 +74,37 @@ function formatBytes(value: number | null) {
     index += 1;
   }
   return `${size.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
+function renderFileList(
+  entries: ProjectFileRow[],
+  projectById: Map<string, ProjectRow>,
+  signedByPath: Map<string, string>,
+  emptyText: string,
+) {
+  if (entries.length === 0) return <div className="empty-state compact-empty">{emptyText}</div>;
+
+  return (
+    <div className="admin-list">
+      {entries.map((file) => {
+        const signed = signedByPath.get(file.storage_path);
+        return (
+          <div className="admin-list-row dossier-file-row" key={file.id}>
+            <div>
+              <strong>{file.file_name}</strong>
+              <span>{projectById.get(file.project_id)?.name || "Projekt"} · {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}</span>
+              {file.note ? <p>{file.note}</p> : null}
+            </div>
+            {signed ? (
+              <a className="secondary-button button-link" href={signed}>
+                <Download size={16} aria-hidden="true" /> Download
+              </a>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default async function ClientDossierPage({
@@ -71,12 +140,12 @@ export default async function ClientDossierPage({
     .eq("client_id", id)
     .order("updated_at", { ascending: false });
 
-  const projectRows = projects ?? [];
+  const projectRows = (projects ?? []) as ProjectRow[];
   const projectIds = projectRows.map((project) => project.id);
 
-  let files: Array<{ id: string; project_id: string; uploader_id: string; file_name: string; storage_path: string; size_bytes: number | null; note: string | null; created_at: string }> = [];
-  let messages: Array<{ id: string; project_id: string; sender_id: string; body: string; created_at: string }> = [];
-  let requests: Array<{ id: string; project_id: string; title: string; description: string | null; status: string; created_at: string }> = [];
+  let files: ProjectFileRow[] = [];
+  let messages: MessageRow[] = [];
+  let requests: RequestRow[] = [];
 
   if (projectIds.length) {
     const [filesResult, messagesResult, requestsResult] = await Promise.all([
@@ -84,9 +153,9 @@ export default async function ClientDossierPage({
       supabase.from("project_messages").select("id, project_id, sender_id, body, created_at").in("project_id", projectIds).order("created_at", { ascending: false }),
       supabase.from("project_requests").select("id, project_id, title, description, status, created_at").in("project_id", projectIds).order("created_at", { ascending: false }),
     ]);
-    files = filesResult.data ?? [];
-    messages = messagesResult.data ?? [];
-    requests = requestsResult.data ?? [];
+    files = (filesResult.data ?? []) as ProjectFileRow[];
+    messages = (messagesResult.data ?? []) as MessageRow[];
+    requests = (requestsResult.data ?? []) as RequestRow[];
   }
 
   const projectById = new Map(projectRows.map((project) => [project.id, project]));
@@ -103,32 +172,6 @@ export default async function ClientDossierPage({
   const adminFiles = files.filter((file) => file.uploader_id !== client.id);
   const latestProject = projectRows[0];
   const displayName = client.company_name || client.full_name || "Kunde";
-
-  function FileList({ entries, emptyText }: { entries: typeof files; emptyText: string }) {
-    if (entries.length === 0) return <div className="empty-state compact-empty">{emptyText}</div>;
-
-    return (
-      <div className="admin-list">
-        {entries.map((file) => {
-          const signed = signedByPath.get(file.storage_path);
-          return (
-            <div className="admin-list-row dossier-file-row" key={file.id}>
-              <div>
-                <strong>{file.file_name}</strong>
-                <span>{projectById.get(file.project_id)?.name || "Projekt"} · {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}</span>
-                {file.note ? <p>{file.note}</p> : null}
-              </div>
-              {signed ? (
-                <a className="secondary-button button-link" href={signed}>
-                  <Download size={16} aria-hidden="true" /> Download
-                </a>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
 
   return (
     <main className="main admin-main client-dossier" id="main-content">
@@ -242,13 +285,13 @@ export default async function ClientDossierPage({
         <article className="admin-panel">
           <div className="section-heading"><div><div className="eyebrow">Vom Kunden</div><h2>Kundenuploads</h2></div><span className="badge">{customerUploads.length}</span></div>
           <p className="admin-hint">Hier stehen ausschließlich Dateien, die dieser Kunde selbst hochgeladen hat.</p>
-          <FileList entries={customerUploads} emptyText="Der Kunde hat noch keine Dateien hochgeladen." />
+          {renderFileList(customerUploads, projectById, signedByPath, "Der Kunde hat noch keine Dateien hochgeladen.")}
         </article>
 
         <article className="admin-panel">
           <div className="section-heading"><div><div className="eyebrow">Von dir</div><h2>Bereitgestellte Dateien</h2></div><span className="badge">{adminFiles.length}</span></div>
           <p className="admin-hint">Dateien, die du dem Kunden über seine Projekte bereitgestellt hast.</p>
-          <FileList entries={adminFiles} emptyText="Du hast diesem Kunden noch keine Dateien bereitgestellt." />
+          {renderFileList(adminFiles, projectById, signedByPath, "Du hast diesem Kunden noch keine Dateien bereitgestellt.")}
         </article>
       </section>
 
