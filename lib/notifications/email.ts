@@ -52,7 +52,10 @@ export async function sendTransactionalEmail(input: EmailInput): Promise<EmailRe
           email: fromEmail,
           name: fromName,
         },
-        to: [{ email: input.to }],
+        to: [{
+          email: input.to,
+          contactPixelTrackingConsent: false,
+        }],
         subject: input.subject,
         htmlContent: input.html,
       }),
