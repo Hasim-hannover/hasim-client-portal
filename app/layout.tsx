@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./portal/portal.css";
 import "./portal.css";
+import "./portal-v2.css";
 
 export const metadata: Metadata = {
   title: {

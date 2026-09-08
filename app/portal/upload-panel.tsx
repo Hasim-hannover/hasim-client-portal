@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 type Project = { id: string; name: string };
 type ProjectRequest = { id: string; projectId: string; title: string; status: "open" | "submitted" | "done" };
+type ProjectAction = { id: string; projectId: string; title: string; type: "upload" | "approval" | "info"; status: string };
 type Category = "document" | "image" | "video" | "other";
 type UploadMode = "client" | "admin";
 
@@ -26,26 +27,33 @@ function inferCategory(file: File): Category {
 export function UploadPanel({
   projects,
   requests = [],
+  actions = [],
   initialRequestId = "",
+  initialActionId = "",
   mode,
 }: {
   projects: Project[];
   requests?: ProjectRequest[];
+  actions?: ProjectAction[];
   initialRequestId?: string;
+  initialActionId?: string;
   mode?: UploadMode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const effectiveMode: UploadMode = mode ?? (pathname.startsWith("/admin") ? "admin" : "client");
   const supabase = useMemo(() => createClient(), []);
-  const initialRequest = effectiveMode === "client" ? requests.find((request) => request.id === initialRequestId && request.status !== "done") : undefined;
-  const [projectId, setProjectId] = useState(initialRequest?.projectId ?? projects[0]?.id ?? "");
+  const initialAction = effectiveMode === "client" ? actions.find((action) => action.id === initialActionId && action.type === "upload" && action.status !== "done") : undefined;
+  const initialRequest = !initialAction && effectiveMode === "client" ? requests.find((request) => request.id === initialRequestId && request.status !== "done") : undefined;
+  const [projectId, setProjectId] = useState(initialAction?.projectId ?? initialRequest?.projectId ?? projects[0]?.id ?? "");
+  const [actionId, setActionId] = useState(initialAction?.id ?? "");
   const [requestId, setRequestId] = useState(initialRequest?.id ?? "");
   const [category, setCategory] = useState<Category>("document");
   const [files, setFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
   const [uploading, setUploading] = useState(false);
+  const projectActions = actions.filter((action) => action.projectId === projectId && action.type === "upload" && !["done", "approved"].includes(action.status));
   const projectRequests = requests.filter((request) => request.projectId === projectId && request.status !== "done");
 
   function handleFiles(selectedFiles: File[]) {
@@ -57,12 +65,14 @@ export function UploadPanel({
 
   function handleProjectChange(nextProjectId: string) {
     setProjectId(nextProjectId);
+    if (!actions.some((action) => action.id === actionId && action.projectId === nextProjectId)) setActionId("");
     if (!requests.some((request) => request.id === requestId && request.projectId === nextProjectId)) setRequestId("");
   }
 
-  function handleRequestChange(nextRequestId: string) {
-    setRequestId(nextRequestId);
-    const selected = requests.find((request) => request.id === nextRequestId);
+  function handleActionChange(nextActionId: string) {
+    setActionId(nextActionId);
+    setRequestId("");
+    const selected = actions.find((action) => action.id === nextActionId);
     if (selected) setProjectId(selected.projectId);
   }
 
@@ -98,7 +108,8 @@ export function UploadPanel({
           project_id: projectId,
           uploader_id: user.id,
           upload_id: uploadId,
-          request_id: effectiveMode === "client" && requestId ? requestId : null,
+          action_id: effectiveMode === "client" && actionId ? actionId : null,
+          request_id: effectiveMode === "client" && !actionId && requestId ? requestId : null,
           category,
           note: note.trim() || null,
           file_name: file.name,
@@ -107,6 +118,11 @@ export function UploadPanel({
           size_bytes: file.size,
         });
         if (metadataError) throw metadataError;
+      }
+
+      if (effectiveMode === "client" && actionId) {
+        const { error: actionError } = await supabase.rpc("submit_project_action", { p_action_id: actionId });
+        if (actionError) throw actionError;
       }
 
       const notificationResponse = await fetch("/api/notifications", {
@@ -119,10 +135,11 @@ export function UploadPanel({
       if (!notification?.configured) setStatus("Upload erfolgreich. Die E-Mail-Benachrichtigung ist noch nicht aktiviert.");
       else if (notification.failed?.length) setStatus("Upload erfolgreich. Mindestens eine E-Mail konnte nicht zugestellt werden.");
       else if (effectiveMode === "admin") setStatus("Upload erfolgreich. Der Kunde wurde automatisch per E-Mail benachrichtigt.");
-      else setStatus("Upload erfolgreich. Hasim Üner wurde benachrichtigt und du hast eine Bestätigung per E-Mail erhalten.");
+      else setStatus(actionId ? "Upload erfolgreich. Die Aufgabe wurde als eingereicht markiert und Hasim wurde benachrichtigt." : "Upload erfolgreich. Hasim Üner wurde benachrichtigt und du hast eine Bestätigung per E-Mail erhalten.");
 
       setFiles([]);
       setNote("");
+      setActionId("");
       setRequestId("");
       event.currentTarget.reset();
       setProjectId(projects[0]?.id ?? "");
@@ -149,9 +166,15 @@ export function UploadPanel({
         <label htmlFor="upload-project">Projekt</label>
         <select id="upload-project" value={projectId} onChange={(event) => handleProjectChange(event.target.value)} required disabled={uploading}>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
 
-        {effectiveMode === "client" ? <>
+        {effectiveMode === "client" && projectActions.length ? <>
+          <label htmlFor="upload-action">Zu welcher Aufgabe gehört der Upload?</label>
+          <select id="upload-action" value={actionId} onChange={(event) => handleActionChange(event.target.value)} disabled={uploading}>
+            <option value="">Allgemeiner Projekt-Upload</option>
+            {projectActions.map((action) => <option key={action.id} value={action.id}>{action.status === "submitted" ? "Bereits eingereicht: " : "Benötigt: "}{action.title}</option>)}
+          </select>
+        </> : effectiveMode === "client" && projectRequests.length ? <>
           <label htmlFor="upload-request">Wofür sind die Dateien?</label>
-          <select id="upload-request" value={requestId} onChange={(event) => handleRequestChange(event.target.value)} disabled={uploading}>
+          <select id="upload-request" value={requestId} onChange={(event) => setRequestId(event.target.value)} disabled={uploading}>
             <option value="">Allgemeiner Projekt-Upload</option>
             {projectRequests.map((request) => <option key={request.id} value={request.id}>{request.status === "submitted" ? "Bereits eingereicht: " : "Benötigt: "}{request.title}</option>)}
           </select>
