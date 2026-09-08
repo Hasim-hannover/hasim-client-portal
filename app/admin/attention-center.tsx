@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, Clock3, Inbox, Search, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock3, Inbox, Search, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createClientAction, updateClientActionStatus } from "./action-workflows";
 
@@ -11,10 +11,6 @@ const statusLabels: Record<string, string> = {
   changes_requested: "Änderungen gewünscht",
   done: "Erledigt",
 };
-
-function daysSince(value: string) {
-  return Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000));
-}
 
 export async function AttentionCenter() {
   const supabase = await createClient();
@@ -33,9 +29,8 @@ export async function AttentionCenter() {
   const projectById = new Map(projects.map((project) => [project.id, project]));
   const waitingOnClient = actions.filter((action) => ["open", "changes_requested"].includes(action.status));
   const submitted = actions.filter((action) => action.status === "submitted");
-  const overdue = waitingOnClient.filter((action) => action.due_at && new Date(action.due_at).getTime() < Date.now());
-  const stale = waitingOnClient.filter((action) => !action.due_at && daysSince(action.updated_at) >= 5);
-  const attention = [...overdue, ...submitted, ...stale.filter((item) => !overdue.some((overdueItem) => overdueItem.id === item.id))].slice(0, 8);
+  const withDeadline = waitingOnClient.filter((action) => Boolean(action.due_at));
+  const attention = [...submitted, ...waitingOnClient.filter((item) => !submitted.some((submittedItem) => submittedItem.id === item.id))].slice(0, 8);
 
   return (
     <section className="attention-center" id="attention" aria-labelledby="attention-title">
@@ -47,7 +42,7 @@ export async function AttentionCenter() {
       <div className="attention-stat-grid">
         <article><Inbox size={18} aria-hidden="true" /><strong>{submitted.length}</strong><span>Eingereicht – prüfen</span></article>
         <article><Clock3 size={18} aria-hidden="true" /><strong>{waitingOnClient.length}</strong><span>Wartet auf Kunde</span></article>
-        <article><AlertTriangle size={18} aria-hidden="true" /><strong>{overdue.length}</strong><span>Überfällig</span></article>
+        <article><Clock3 size={18} aria-hidden="true" /><strong>{withDeadline.length}</strong><span>Mit Fälligkeit</span></article>
         <article><Sparkles size={18} aria-hidden="true" /><strong>{events.length}</strong><span>Letzte Aktivitäten</span></article>
       </div>
 
@@ -58,12 +53,11 @@ export async function AttentionCenter() {
             <div className="attention-list">{attention.map((action) => {
               const project = projectById.get(action.project_id);
               const client = project ? clientById.get(project.client_id) : null;
-              const isOverdue = Boolean(action.due_at && new Date(action.due_at).getTime() < Date.now());
               return <article className="attention-row" key={action.id}>
                 <div className="attention-row-main">
-                  <div className="action-type-row"><span className="action-type-pill">{typeLabels[action.action_type] ?? action.action_type}</span><span className={`action-status action-status-${action.status}`}>{isOverdue ? "Überfällig" : statusLabels[action.status] ?? action.status}</span></div>
+                  <div className="action-type-row"><span className="action-type-pill">{typeLabels[action.action_type] ?? action.action_type}</span><span className={`action-status action-status-${action.status}`}>{statusLabels[action.status] ?? action.status}</span></div>
                   <strong>{action.title}</strong>
-                  <span>{client?.company_name || client?.full_name || "Kunde"} · {project?.name || "Projekt"}</span>
+                  <span>{client?.company_name || client?.full_name || "Kunde"} · {project?.name || "Projekt"}{action.due_at ? ` · fällig ${new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(action.due_at))}` : ""}</span>
                   {action.response_note ? <p>{action.response_note}</p> : null}
                 </div>
                 <div className="attention-row-actions">
@@ -82,7 +76,7 @@ export async function AttentionCenter() {
         <article className="admin-panel action-composer-panel">
           <div className="eyebrow">Next Action Engine</div>
           <h3>Neue Kundenaufgabe</h3>
-          <p className="admin-hint">Nicht nur Dateien anfordern: Upload, Freigabe oder kurze Bestätigung als klaren nächsten Schritt definieren.</p>
+          <p className="admin-hint">Upload, Freigabe oder kurze Bestätigung als klaren nächsten Schritt definieren.</p>
           <form action={createClientAction} className="admin-form">
             <label htmlFor="action-project">Projekt</label>
             <select id="action-project" name="projectId" required>{projects.map((project) => {
