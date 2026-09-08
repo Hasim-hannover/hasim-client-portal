@@ -20,6 +20,7 @@ import {
   respondToApproval,
 } from "./actions";
 import { MessagePanel } from "./message-panel";
+import { ProjectStartClientPanel } from "./project-start-client-panel";
 import { UploadPanel } from "./upload-panel";
 
 export const dynamic = "force-dynamic";
@@ -33,12 +34,12 @@ const areas = [
 
 const categoryLabels: Record<string, string> = Object.fromEntries(areas.map((area) => [area.key, area.title]));
 const phaseLabels: Record<string, string> = {
-  onboarding: "Onboarding",
-  content: "Inhalte & Material",
-  concept: "Konzept",
-  development: "Umsetzung",
-  review: "Prüfung & Freigabe",
-  launch: "Launch",
+  onboarding: "Kick-off & Bestandsaufnahme",
+  content: "Design & Inhalte",
+  concept: "Konzept & Leitseiten",
+  development: "Entwicklung",
+  review: "Qualitätssicherung & Abnahme",
+  launch: "Livegang & Übergabe",
   completed: "Abgeschlossen",
 };
 const phaseOrder = ["onboarding", "content", "concept", "development", "review", "launch", "completed"];
@@ -96,7 +97,7 @@ export default async function PortalPage({
 
   const [profileResult, projectsResult, actionsResult, filesResult, messagesResult, eventsResult, notificationsResult] = await Promise.all([
     supabase.from("profiles").select("full_name, email").eq("id", user.id).single(),
-    supabase.from("projects").select("id, name, status, phase, phase_note, updated_at").order("created_at", { ascending: false }),
+    supabase.from("projects").select("id, name, status, phase, phase_note, started_at, updated_at").order("created_at", { ascending: false }),
     supabase.from("project_actions").select("id, project_id, title, description, action_type, status, due_at, response_note, created_at, updated_at").order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("project_files").select("id, project_id, action_id, upload_id, category, note, file_name, storage_path, mime_type, size_bytes, created_at").order("created_at", { ascending: false }).limit(80),
     supabase.from("project_messages").select("id, project_id, sender_id, body, created_at").order("created_at", { ascending: false }).limit(20),
@@ -153,9 +154,10 @@ export default async function PortalPage({
     <div className="portal-shell portal-v2-shell">
       <a className="skip-link" href="#main-content">Zum Inhalt springen</a>
       <aside className="sidebar" aria-label="Kundenportal Navigation">
-        <div className="brand">Hasim Client Portal</div>
+        <div className="brand">WERK</div>
         <nav className="nav" aria-label="Portal Navigation">
           <a className="nav-item active" href="#dashboard" aria-current="location">Übersicht</a>
+          {activeProject ? <a className="nav-item" href="#projektstart">Projektstart</a> : null}
           <a className="nav-item" href="#aktionen">Deine Aufgaben</a>
           <a className="nav-item" href="#aktivitaet">Aktivität</a>
           <a className="nav-item" href="#dateien">Dateien</a>
@@ -169,7 +171,7 @@ export default async function PortalPage({
       <main className="main portal-v2-main" id="main-content">
         <header className="workspace-topbar" id="dashboard">
           <div>
-            <div className="eyebrow">Client Workspace</div>
+            <div className="eyebrow">WERK · Projektbereich</div>
             <h1>{profile?.full_name ? `Hallo ${profile.full_name.split(" ")[0]}.` : "Willkommen im Projekt."}</h1>
             <p className="lead">Hier siehst du nur das, was für den nächsten Projektschritt relevant ist.</p>
           </div>
@@ -183,10 +185,10 @@ export default async function PortalPage({
 
         <section className="client-focus-grid" aria-label="Aktueller Projektfokus">
           <article className="client-focus-card primary-focus-card">
-            <div className="focus-card-topline"><span className="status-dot" aria-hidden="true" /><span>{activeProject ? phaseLabels[activeProject.phase] ?? activeProject.phase : "Noch kein Projekt"}</span></div>
+            <div className="focus-card-topline"><span className="status-dot" aria-hidden="true" /><span>{activeProject ? activeProject.started_at ? phaseLabels[activeProject.phase] ?? activeProject.phase : "Projektstart" : "Noch kein Projekt"}</span></div>
             <h2>{activeProject?.name || "Dein Projekt wird vorbereitet"}</h2>
-            <p>{activeProject?.phase_note || "Sobald es ein Projektupdate gibt, erscheint hier der aktuelle Stand."}</p>
-            {activeProject ? (
+            <p>{activeProject ? activeProject.started_at ? activeProject.phase_note || "Der aktuelle Projektstand wird hier fortlaufend aktualisiert." : "Vor Phase 1 werden Vertrag, erste Teilzahlung und die benötigten technischen Zugänge geklärt." : "Sobald es ein Projektupdate gibt, erscheint hier der aktuelle Stand."}</p>
+            {activeProject?.started_at ? (
               <ol className="phase-track premium-phase-track" aria-label={`Projektfortschritt: ${phaseLabels[activeProject.phase] ?? activeProject.phase}`}>
                 {phaseOrder.map((phase, index) => <li key={phase} className={index <= currentPhaseIndex ? "phase-step active" : "phase-step"} aria-current={index === currentPhaseIndex ? "step" : undefined}><span className="sr-only">{phaseLabels[phase]}</span></li>)}
               </ol>
@@ -205,6 +207,8 @@ export default async function PortalPage({
             ) : <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>Du bist auf dem aktuellen Stand.</strong><span>Im Moment ist nichts von dir erforderlich.</span></div></div>}
           </article>
         </section>
+
+        {activeProject ? <ProjectStartClientPanel projectId={activeProject.id} projectName={activeProject.name} startedAt={activeProject.started_at} /> : null}
 
         <section className="client-actions-section" id="aktionen" aria-labelledby="actions-title">
           <div className="section-heading">
@@ -291,7 +295,7 @@ export default async function PortalPage({
           {messages.length === 0 ? <div className="empty-state">Noch keine Projektnachrichten vorhanden.</div> : <div className="message-list">{messages.map((message) => <article className="message-item" key={message.id}><div className="message-meta"><strong>{message.senderLabel}</strong><span>{message.projectName} · {formatDate(message.created_at)}</span></div><p>{message.body}</p></article>)}</div>}
         </section>
 
-        <section className="status" aria-label="Sicherheitshinweis"><div><strong>Geschützter Projektraum</strong><span>Dateien liegen privat und Downloads werden nur zeitlich begrenzt freigegeben.</span></div><div className="badge"><LayoutDashboard size={14} aria-hidden="true" />Client Workspace</div></section>
+        <section className="status" aria-label="Sicherheitshinweis"><div><strong>Geschützter Projektraum</strong><span>Dateien liegen privat und Downloads werden nur zeitlich begrenzt freigegeben.</span></div><div className="badge"><LayoutDashboard size={14} aria-hidden="true" />WERK</div></section>
       </main>
     </div>
   );
