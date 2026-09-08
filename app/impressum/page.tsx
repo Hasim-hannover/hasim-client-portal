@@ -18,19 +18,19 @@ export default function ImpressumPage() {
         </header>
 
         <h2>Anbieter</h2>
-        <p><strong>Haşim Üner</strong><br />Pattensen bei Hannover<br />Deutschland</p>
+        <p><strong>Haşim Üner</strong><br />Warschauer Str. 5<br />30982 Pattensen<br />Deutschland</p>
 
         <h2>Kontakt</h2>
         <p>E-Mail: <a href="mailto:kontakt@hasimuener.de">kontakt@hasimuener.de</a><br />Telefon: <a href="tel:+4917676596580">+49 176 76596580</a></p>
 
         <div className="legal-callout">
-          <strong>Vollständige zentrale Anbieterkennzeichnung</strong>
-          <p>Die vollständige geschäftliche Anbieterkennzeichnung einschließlich der jeweils aktuellen ladungsfähigen Anschrift und weiterer gesetzlich erforderlicher Angaben wird zentral auf der Hauptwebsite gepflegt.</p>
+          <strong>Zentrale Anbieterkennzeichnung</strong>
+          <p>Die Anbieterangaben werden zusätzlich auf der Hauptwebsite gepflegt. Bei Änderungen soll die Anbieterkennzeichnung des Portals entsprechend synchron gehalten werden.</p>
           <p><a href="https://hasimuener.de/impressum/" rel="noreferrer">Zentrales Impressum auf hasimuener.de öffnen</a></p>
         </div>
 
         <h2>Verantwortlich für Inhalte</h2>
-        <p>Haşim Üner, Anschrift wie in der zentralen Anbieterkennzeichnung.</p>
+        <p>Haşim Üner, Warschauer Str. 5, 30982 Pattensen.</p>
 
         <h2>Hinweis zum Kundenportal</h2>
         <p>Dieses Portal ist kein öffentliches Informations- oder Verkaufsportal. Es dient ausschließlich der geschützten Projektkommunikation, dem Dateiaustausch und der Zusammenarbeit mit bestehenden oder konkret angebahnten Kunden.</p>
