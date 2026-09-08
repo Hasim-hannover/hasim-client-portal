@@ -1,0 +1,42 @@
+/* Workspace component recipes that intentionally sit above the global token layer. */
+
+.file-list { display: grid; }
+.file-row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 14px 0; border-top: 1px solid var(--border); }
+.file-row:first-child { border-top: 0; }
+.file-row strong, .file-row span { display: block; overflow-wrap: anywhere; }
+.file-row span { margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+.status { margin-top: 24px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.status strong, .status span { display: block; }
+.status span { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.status .badge { margin-top: 0; }
+
+.phase-pill {
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text-soft);
+  font-size: 11px;
+  letter-spacing: .02em;
+}
+.phase-note { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--text-soft); font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+
+.workspace-header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.dossier-file-row .button-link { flex: 0 0 auto; }
+
+.health-dot { display: inline-block; width: 8px; height: 8px; flex: 0 0 auto; border-radius: 999px; background: #7b8490; box-shadow: 0 0 0 3px rgba(123,132,144,.1); }
+.health-dot.is-ok { background: #5f836a; box-shadow: 0 0 0 3px rgba(95,131,106,.1); }
+.health-dot.is-error { background: #a5635c; box-shadow: 0 0 0 3px rgba(165,99,92,.1); }
+.delivery-row > .health-dot { margin: 8px 0 0 8px; }
+
+/* Keep state meaning independent from color. Text labels and SR-only status copy remain authoritative. */
+.delivery-row.is-ok, .delivery-row.is-error { background: #fff; }
+.delivery-row.is-error { border-color: #dfc9c6; }
+.delivery-summary.is-ok, .delivery-summary.has-errors { background: var(--surface-subtle); border-color: var(--border); color: var(--text-soft); }
+
+@media (max-width: 700px) {
+  .status, .file-row { flex-direction: column; align-items: flex-start; }
+  .workspace-header-actions { justify-content: flex-start; width: 100%; }
+  .workspace-header-actions .button-link { flex: 1 1 auto; }
+}
