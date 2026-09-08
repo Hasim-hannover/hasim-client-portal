@@ -19,10 +19,7 @@ export function PortalUnreadBanner() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (pathname !== "/portal") {
-      setNotification(null);
-      return;
-    }
+    if (pathname !== "/portal") return;
 
     let active = true;
     void (async () => {
