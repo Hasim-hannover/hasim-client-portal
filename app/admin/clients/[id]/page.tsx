@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "../actions";
 import { ClientAccountActions } from "./client-account-actions";
+import { CommunicationHealth } from "./communication-health";
 
 export const dynamic = "force-dynamic";
 
@@ -213,6 +214,7 @@ export default async function ClientDossierPage({
         <a href="#access">Zugang</a>
         <a href="#projects">Projekte</a>
         <a href="#customer-files">Kundenuploads</a>
+        <a href="#communication-health">E-Mail-Status</a>
         <a href="#messages">Nachrichten</a>
       </nav>
 
@@ -316,6 +318,8 @@ export default async function ClientDossierPage({
           {renderFileList(adminFiles, projectById, signedByPath, "Du hast diesem Kunden noch keine Dateien bereitgestellt.")}
         </article>
       </section>
+
+      <CommunicationHealth email={client.email} />
 
       <section className="admin-panel" id="messages">
         <div className="section-heading"><div><div className="eyebrow">Kommunikation</div><h2>Nachrichtenverlauf</h2></div><span className="badge">{messages.length}</span></div>
