@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAppUrl } from "@/lib/app-url";
-import { escapeHtml, sendTransactionalEmail } from "@/lib/notifications/email";
+import { sendTransactionalEmail } from "@/lib/notifications/email";
+import { emailInfoCard, emailShell } from "@/lib/notifications/templates";
 import { createClient } from "@/lib/supabase/server";
 
 const allowedTypes = new Set(["upload", "approval", "info"]);
@@ -44,24 +45,38 @@ export async function createClientAction(formData: FormData) {
       action_type: actionType,
       due_at: dueAt,
     })
-    .select("id, project_id, title, description, action_type")
+    .select("id, project_id, title, description, action_type, due_at")
     .single();
 
   if (error || !action) back(`Aufgabe konnte nicht erstellt werden: ${error?.message ?? "Unbekannter Fehler"}`, true);
 
-  const [{ data: project }, { data: client }] = await Promise.all([
-    supabase.from("projects").select("name, client_id").eq("id", projectId).single(),
-    supabase.from("profiles").select("email, full_name").eq("id", (await supabase.from("projects").select("client_id").eq("id", projectId).single()).data?.client_id ?? "").single(),
-  ]);
+  const { data: project } = await supabase.from("projects").select("name, client_id").eq("id", projectId).single();
+  const { data: client } = project
+    ? await supabase.from("profiles").select("email, full_name").eq("id", project.client_id).single()
+    : { data: null };
 
+  let mailOk = false;
+  let mailReason = "Keine Kunden-E-Mail hinterlegt.";
   if (client?.email && project) {
     const typeLabel = actionType === "approval" ? "Freigabe" : actionType === "info" ? "Bestätigung" : "Upload";
+    const dueLabel = dueAt ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(dueAt)) : null;
     const result = await sendTransactionalEmail({
       to: client.email,
       subject: `Neue Aufgabe – ${project.name}`,
-      html: `<div style="font-family:Arial,sans-serif;line-height:1.55;color:#111318;max-width:620px;margin:0 auto"><div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:20px">Hasim Client Portal · ${typeLabel}</div><h1 style="font-size:24px;margin:0 0 16px">${escapeHtml(title)}</h1><p>Hallo ${escapeHtml(client.full_name || "")},</p>${description ? `<p>${escapeHtml(description).replaceAll("\n", "<br>")}</p>` : ""}<p style="margin:24px 0"><a href="${getAppUrl()}/portal#action-${action.id}" style="display:inline-block;padding:11px 16px;border-radius:8px;background:#111318;color:#fff;text-decoration:none;font-weight:700">Aufgabe öffnen</a></p></div>`,
+      html: emailShell({
+        preheader: `${title} – neuer nächster Schritt im Projekt ${project.name}.`,
+        eyebrow: `Hasim Client Portal · ${typeLabel}`,
+        title,
+        intro: client.full_name ? `Hallo ${client.full_name},` : "Hallo,",
+        bodyHtml: `${emailInfoCard("Projekt", project.name)}${dueLabel ? emailInfoCard("Fällig", dueLabel) : ""}${description ? `<p style=\"margin:0;color:#4b5563\">${description.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\n", "<br>")}</p>` : ""}`,
+        ctaLabel: "Aufgabe öffnen",
+        ctaUrl: `${getAppUrl()}/portal#action-${action.id}`,
+      }),
       idempotencyKey: `portal-action-${action.id}`,
     });
+
+    mailOk = result.ok;
+    mailReason = result.error ?? `Brevo HTTP ${result.status}`;
 
     await supabase.from("notification_deliveries").insert({
       actor_id: user.id,
@@ -79,7 +94,7 @@ export async function createClientAction(formData: FormData) {
   }
 
   revalidatePath("/portal");
-  back("Aufgabe erstellt und Kunde informiert.");
+  back(mailOk ? "Aufgabe erstellt und Kunde per E-Mail informiert." : `Aufgabe erstellt. E-Mail-Hinweis: ${mailReason}`);
 }
 
 export async function updateClientActionStatus(formData: FormData) {
