@@ -85,3 +85,48 @@ end;
 $$;
 revoke all on function public.respond_project_approval(uuid,text,text) from public, anon;
 grant execute on function public.respond_project_approval(uuid,text,text) to authenticated;
+
+create or replace function private.block_project_phase_advance_on_approval()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  old_rank integer;
+  new_rank integer;
+  blocker_title text;
+begin
+  old_rank := case old.phase
+    when 'onboarding' then 1 when 'content' then 2 when 'concept' then 3
+    when 'development' then 4 when 'review' then 5 when 'launch' then 6 when 'completed' then 7 else 0 end;
+  new_rank := case new.phase
+    when 'onboarding' then 1 when 'content' then 2 when 'concept' then 3
+    when 'development' then 4 when 'review' then 5 when 'launch' then 6 when 'completed' then 7 else 0 end;
+
+  if new_rank > old_rank then
+    select pa.title into blocker_title
+    from public.project_actions pa
+    where pa.project_id = new.id
+      and pa.action_type = 'approval'
+      and pa.blocks_progress = true
+      and pa.status <> 'approved'
+      and (case pa.phase_key
+        when 'onboarding' then 1 when 'content' then 2 when 'concept' then 3
+        when 'development' then 4 when 'review' then 5 when 'launch' then 6 when 'completed' then 7 else 0 end) < new_rank
+    order by pa.created_at asc
+    limit 1;
+
+    if blocker_title is not null then
+      raise exception 'Offene blockierende Freigabe: %', blocker_title using errcode = 'P0001';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+revoke all on function private.block_project_phase_advance_on_approval() from public, anon, authenticated;
+drop trigger if exists projects_block_phase_advance_on_approval on public.projects;
+create trigger projects_block_phase_advance_on_approval
+before update of phase on public.projects
+for each row execute function private.block_project_phase_advance_on_approval();
