@@ -5,6 +5,7 @@ import "./portal.css";
 import "./portal-v2.css";
 import "./premium-polish.css";
 import "./communication-health.css";
+import "./unread-banner.css";
 import { PortalUnreadBanner } from "./portal-unread-banner";
 
 export const metadata: Metadata = {
