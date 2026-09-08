@@ -17,8 +17,8 @@ import {
   logout,
   markAllNotificationsRead,
   markNotificationRead,
-  respondToApproval,
 } from "./actions";
+import { ApprovalCard, type ApprovalCardAction } from "./approval-card";
 import { MessagePanel } from "./message-panel";
 import { ProjectStartClientPanel } from "./project-start-client-panel";
 import { UploadPanel } from "./upload-panel";
@@ -98,7 +98,7 @@ export default async function PortalPage({
   const [profileResult, projectsResult, actionsResult, filesResult, messagesResult, eventsResult, notificationsResult] = await Promise.all([
     supabase.from("profiles").select("full_name, email").eq("id", user.id).single(),
     supabase.from("projects").select("id, name, status, phase, phase_note, started_at, updated_at").order("created_at", { ascending: false }),
-    supabase.from("project_actions").select("id, project_id, title, description, action_type, status, due_at, response_note, created_at, updated_at").order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+    supabase.from("project_actions").select("id, project_id, title, description, action_type, status, due_at, response_note, phase_key, version_label, demo_url, preview_image_url, blocks_progress, demo_auth_type, created_at, updated_at").order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("project_files").select("id, project_id, action_id, upload_id, category, note, file_name, storage_path, mime_type, size_bytes, created_at").order("created_at", { ascending: false }).limit(80),
     supabase.from("project_messages").select("id, project_id, sender_id, body, created_at").order("created_at", { ascending: false }).limit(20),
     supabase.from("project_events").select("id, project_id, actor_id, event_type, title, body, created_at").order("created_at", { ascending: false }).limit(24),
@@ -110,6 +110,8 @@ export default async function PortalPage({
   const actionList = (actionsResult.data ?? []).map((action) => ({ ...action, projectName: projectNames.get(action.project_id) ?? "Projekt" }));
   const clientActions = actionList.filter(needsClientAction);
   const waitingActions = actionList.filter(waitsForOwner);
+  const approvalHistory = actionList.filter((action) => action.action_type === "approval" && action.status !== "open").slice().reverse();
+  const hasApprovals = actionList.some((action) => action.action_type === "approval");
   const activeProject = projectList[0] ?? null;
   const primaryAction = clientActions[0] ?? null;
   const waitingAction = waitingActions[0] ?? null;
@@ -159,6 +161,7 @@ export default async function PortalPage({
           <a className="nav-item active" href="#dashboard" aria-current="location">Übersicht</a>
           {activeProject ? <a className="nav-item" href="#projektstart">Projektstart</a> : null}
           <a className="nav-item" href="#aktionen">Deine Aufgaben</a>
+          {hasApprovals ? <a className="nav-item" href="#freigaben">Freigaben</a> : null}
           <a className="nav-item" href="#aktivitaet">Aktivität</a>
           <a className="nav-item" href="#dateien">Dateien</a>
           <a className="nav-item" href="#nachrichten">Nachrichten</a>
@@ -220,7 +223,9 @@ export default async function PortalPage({
             <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>{waitingActions.length ? "Von dir ist gerade nichts offen." : "Alles erledigt."}</strong><span>{waitingActions.length ? "Wir sind am Zug. Sobald wir wieder etwas von dir brauchen, erscheint es hier." : "Du musst aktuell nichts tun."}</span></div></div>
           ) : (
             <div className="client-action-list">
-              {clientActions.map((action) => (
+              {clientActions.map((action) => action.action_type === "approval" ? (
+                <ApprovalCard key={action.id} action={action as ApprovalCardAction} />
+              ) : (
                 <article className={`client-action-card action-${action.action_type}`} id={`action-${action.id}`} key={action.id}>
                   <div className="client-action-card-head">
                     <div>
@@ -231,18 +236,6 @@ export default async function PortalPage({
                     {action.action_type === "upload" ? <a className="primary-button button-link" href={`?action=${encodeURIComponent(action.id)}#upload`}>Dateien hochladen</a> : null}
                   </div>
                   {action.description ? <p className="request-description">{action.description}</p> : null}
-
-                  {action.action_type === "approval" ? (
-                    <form action={respondToApproval} className="approval-form">
-                      <input type="hidden" name="actionId" value={action.id} />
-                      <label htmlFor={`approval-note-${action.id}`}>Feedback <span className="optional-label">optional</span></label>
-                      <textarea id={`approval-note-${action.id}`} name="note" rows={3} maxLength={2000} placeholder="Falls du Änderungen möchtest, beschreibe sie hier kurz." defaultValue={action.response_note ?? ""} />
-                      <div className="approval-actions">
-                        <button className="secondary-button" type="submit" name="decision" value="changes_requested">Änderungen erforderlich</button>
-                        <button className="primary-button" type="submit" name="decision" value="approved">Freigeben</button>
-                      </div>
-                    </form>
-                  ) : null}
 
                   {action.action_type === "info" ? (
                     <form action={completeInfoAction} className="approval-form compact-action-form">
@@ -257,6 +250,20 @@ export default async function PortalPage({
             </div>
           )}
         </section>
+
+        {hasApprovals ? (
+          <section className="approval-client-history" id="freigaben" aria-labelledby="approval-history-title">
+            <div className="section-heading"><div><div className="eyebrow">Review-Historie</div><h2 id="approval-history-title">Freigaben & Versionen</h2></div><span className="badge">{approvalHistory.length} entschieden</span></div>
+            {approvalHistory.length === 0 ? <div className="empty-state compact-empty">Die erste Freigabe ist noch offen.</div> : (
+              <div className="approval-client-history-list">{approvalHistory.map((approval) => (
+                <div className={`approval-client-history-row is-${approval.status}`} key={approval.id}>
+                  <span className="approval-history-mark">{approval.status === "approved" ? "✓" : "↺"}</span>
+                  <div><strong>{approval.title}{approval.version_label ? ` · ${approval.version_label}` : ""}</strong><span>{approval.projectName} · {actionStatusLabels[approval.status] ?? approval.status} · {formatDate(approval.updated_at)}</span>{approval.response_note ? <p>{approval.response_note}</p> : null}</div>
+                </div>
+              ))}</div>
+            )}
+          </section>
+        ) : null}
 
         <UploadPanel projects={compactProjects} actions={compactActions} initialActionId={requestedActionId} />
 
