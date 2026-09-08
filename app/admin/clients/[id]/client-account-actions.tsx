@@ -21,13 +21,14 @@ export function ClientAccountActions({
 
   useEffect(() => {
     if (!deleteOpen) return;
+    const trigger = deleteTriggerRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.requestAnimationFrame(() => confirmationInputRef.current?.focus());
 
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.requestAnimationFrame(() => deleteTriggerRef.current?.focus());
+      window.requestAnimationFrame(() => trigger?.focus());
     };
   }, [deleteOpen]);
 
