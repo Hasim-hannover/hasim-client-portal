@@ -23,7 +23,7 @@ export function emailShell({
   bodyHtml = "",
   ctaLabel,
   ctaUrl,
-  secondaryText = "Diese Nachricht wurde automatisch vom geschützten Kundenportal versendet.",
+  secondaryText = "Diese Nachricht wurde automatisch vom geschützten Kundenportal versendet. Aus Datenschutzgründen gehören vertrauliche Inhalte ausschließlich ins Portal.",
 }: EmailShellInput) {
   const action = ctaLabel && ctaUrl
     ? `<tr><td style="padding:8px 0 6px"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:13px 18px;border-radius:10px;background:#111827;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;line-height:1.2">${escapeHtml(ctaLabel)}</a></td></tr>`
@@ -48,7 +48,7 @@ export function emailShell({
               ${action}
             </table>
           </td></tr>
-          <tr><td style="padding:18px 30px 24px;border-top:1px solid #edf0f3;font-size:12px;line-height:1.55;color:#7b8492">${escapeHtml(secondaryText)}</td></tr>
+          <tr><td style="padding:18px 30px 24px;border-top:1px solid #edf0f3;font-size:12px;line-height:1.55;color:#7b8492">${escapeHtml(secondaryText)}<br><a href="https://hasim-client-portal.vercel.app/datenschutz" style="color:#5b6472;text-decoration:underline">Datenschutzhinweise</a></td></tr>
         </table>
         <div style="max-width:640px;padding:14px 8px 0;font-size:11px;line-height:1.5;color:#8b93a1;text-align:center">Hasim Üner · Client Operations Workspace</div>
       </td></tr>
