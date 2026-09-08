@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAppUrl } from "@/lib/app-url";
 import { createClient } from "@/lib/supabase/server";
 import { emailIsConfigured, sendTransactionalEmail } from "@/lib/notifications/email";
-import { emailFileList, emailInfoCard, emailQuote, emailShell } from "@/lib/notifications/templates";
+import { emailInfoCard, emailShell } from "@/lib/notifications/templates";
 
 type NotificationRequest = {
   kind?: "upload" | "message";
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
   if (kind === "upload") {
     const { data: files, error: filesError } = await supabase
       .from("project_files")
-      .select("file_name, category, note, request_id, action_id")
+      .select("category, request_id, action_id")
       .eq("project_id", projectId)
       .eq("uploader_id", user.id)
       .eq("upload_id", eventId)
@@ -103,10 +103,8 @@ export async function POST(request: NextRequest) {
 
     const assignmentTitle = action?.title || materialRequest?.title || null;
     const category = categoryLabels[files[0].category] ?? "Dateien";
-    const note = files.find((file) => file.note?.trim())?.note?.trim() ?? "";
-    const fileNames = files.map((file) => file.file_name);
     const fileCount = files.length;
-    const commonBody = `${emailInfoCard("Projekt", project.name)}${assignmentTitle ? emailInfoCard("Zuordnung", assignmentTitle) : ""}${emailInfoCard("Bereich", category)}${emailFileList(fileNames)}${note ? emailInfoCard("Notiz", note) : ""}`;
+    const commonBody = `${emailInfoCard("Projekt", project.name)}${assignmentTitle ? emailInfoCard("Zuordnung", assignmentTitle) : ""}${emailInfoCard("Bereich", category)}${emailInfoCard("Umfang", `${fileCount} ${fileCount === 1 ? "Datei" : "Dateien"}`)}`;
 
     if (senderIsCustomer) {
       sendJobs.push(runDelivery({
@@ -118,7 +116,7 @@ export async function POST(request: NextRequest) {
           preheader: `${customerName} hat neue Dateien für ${project.name} hochgeladen.`,
           eyebrow: "Hasim Client Portal · Kundenupload",
           title: `${fileCount} neue ${fileCount === 1 ? "Datei" : "Dateien"}`,
-          intro: `${customerName} hat neue Projektdateien hochgeladen.`,
+          intro: `${customerName} hat neue Projektdateien hochgeladen. Dateinamen, Notizen und Inhalte bleiben aus Datenschutzgründen im geschützten Portal.`,
           bodyHtml: commonBody,
           ctaLabel: "Im Admin prüfen",
           ctaUrl: adminUrl,
@@ -138,8 +136,8 @@ export async function POST(request: NextRequest) {
           eyebrow: senderIsCustomer ? "Hasim Client Portal · Upload bestätigt" : "Hasim Client Portal · Neue Dateien",
           title: senderIsCustomer ? "Upload erfolgreich." : "Neue Dateien sind verfügbar.",
           intro: senderIsCustomer
-            ? "Deine Dateien wurden sicher gespeichert. Hasim wurde automatisch informiert."
-            : "Für dein Projekt wurden neue Dateien bereitgestellt.",
+            ? "Deine Dateien wurden sicher gespeichert. Details bleiben im geschützten Portal; Hasim wurde automatisch informiert."
+            : "Für dein Projekt wurden neue Dateien bereitgestellt. Dateinamen und Inhalte werden nicht per E-Mail versendet.",
           bodyHtml: commonBody,
           ctaLabel: "Dateien im Portal öffnen",
           ctaUrl: `${portalUrl}#dateien`,
@@ -152,7 +150,7 @@ export async function POST(request: NextRequest) {
   if (kind === "message") {
     const { data: message, error: messageError } = await supabase
       .from("project_messages")
-      .select("body")
+      .select("id")
       .eq("id", eventId)
       .eq("project_id", projectId)
       .eq("sender_id", user.id)
@@ -169,9 +167,9 @@ export async function POST(request: NextRequest) {
           preheader: `${customerName} hat eine neue Projektnachricht gesendet.`,
           eyebrow: "Hasim Client Portal · Nachricht",
           title: "Neue Nachricht vom Kunden.",
-          intro: `${customerName} hat zu ${project.name} geschrieben:`,
-          bodyHtml: `${emailInfoCard("Projekt", project.name)}${emailQuote(message.body)}`,
-          ctaLabel: "Nachricht beantworten",
+          intro: `${customerName} hat zu ${project.name} geschrieben. Der Nachrichteninhalt bleibt aus Datenschutzgründen im geschützten Portal.`,
+          bodyHtml: emailInfoCard("Projekt", project.name),
+          ctaLabel: "Nachricht sicher öffnen",
           ctaUrl: adminUrl,
         }),
         idempotencyKey: `portal-message-owner-${eventId}`,
@@ -189,10 +187,10 @@ export async function POST(request: NextRequest) {
           eyebrow: "Hasim Client Portal · Kommunikation",
           title: senderIsCustomer ? "Nachricht gespeichert." : "Neue Projektnachricht.",
           intro: senderIsCustomer
-            ? "Deine Nachricht wurde im Projektverlauf gespeichert und Hasim automatisch informiert."
-            : `Es gibt ein neues Update zu ${project.name}:`,
-          bodyHtml: `${emailInfoCard("Projekt", project.name)}${emailQuote(message.body)}`,
-          ctaLabel: "Kommunikation öffnen",
+            ? "Deine Nachricht wurde im geschützten Projektverlauf gespeichert und Hasim automatisch informiert. Der Inhalt wird nicht per E-Mail wiederholt."
+            : `Es gibt ein neues Update zu ${project.name}. Der vollständige Inhalt ist ausschließlich im geschützten Portal verfügbar.`,
+          bodyHtml: emailInfoCard("Projekt", project.name),
+          ctaLabel: "Nachricht sicher öffnen",
           ctaUrl: `${portalUrl}#nachrichten`,
         }),
         idempotencyKey: `portal-message-customer-${eventId}`,

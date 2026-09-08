@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getAppUrl } from "@/lib/app-url";
 import { sendTransactionalEmail } from "@/lib/notifications/email";
-import { emailInfoCard, emailQuote, emailShell } from "@/lib/notifications/templates";
+import { emailInfoCard, emailShell } from "@/lib/notifications/templates";
 import { createClient } from "@/lib/supabase/server";
 
 async function requireUser() {
@@ -19,7 +19,6 @@ async function notifyOwnerAboutAction(input: {
   userId: string;
   actionId: string;
   stateLabel: string;
-  note: string;
 }) {
   const ownerEmail = process.env.NOTIFICATION_EMAIL;
   if (!ownerEmail) return;
@@ -45,9 +44,9 @@ async function notifyOwnerAboutAction(input: {
       preheader: `${customerName} hat eine Kundenaufgabe aktualisiert.`,
       eyebrow: "Hasim Client Portal · Kundenaktion",
       title: input.stateLabel,
-      intro: `${customerName} hat eine Aufgabe im Projekt aktualisiert.`,
-      bodyHtml: `${emailInfoCard("Projekt", project.name)}${emailInfoCard("Aufgabe", action.title)}${input.note ? emailQuote(input.note) : ""}`,
-      ctaLabel: "Im Admin öffnen",
+      intro: `${customerName} hat eine Aufgabe im Projekt aktualisiert. Antworten und Feedback bleiben aus Datenschutzgründen im geschützten Portal.`,
+      bodyHtml: `${emailInfoCard("Projekt", project.name)}${emailInfoCard("Aufgabe", action.title)}`,
+      ctaLabel: "Sicher im Admin öffnen",
       ctaUrl: `${getAppUrl()}/admin/ops`,
     }),
     idempotencyKey: `portal-action-response-${action.id}-${action.status}-${crypto.randomUUID()}`,
@@ -93,7 +92,6 @@ export async function respondToApproval(formData: FormData) {
     userId: user.id,
     actionId,
     stateLabel: decision === "approved" ? "Freigabe erteilt" : "Änderungen angefordert",
-    note,
   });
   revalidatePath("/portal");
   revalidatePath("/admin/ops");
@@ -112,7 +110,6 @@ export async function completeInfoAction(formData: FormData) {
     userId: user.id,
     actionId,
     stateLabel: "Aufgabe bestätigt",
-    note,
   });
   revalidatePath("/portal");
   revalidatePath("/admin/ops");
