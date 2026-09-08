@@ -7,9 +7,7 @@ import {
   Image,
   LayoutDashboard,
   LogOut,
-  MessageSquare,
   Sparkles,
-  UploadCloud,
   Video,
 } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -52,6 +50,19 @@ const actionStatusLabels: Record<string, string> = {
   changes_requested: "Änderungen gewünscht",
   done: "Erledigt",
 };
+
+type ActionState = { action_type: string; status: string };
+
+function needsClientAction(action: ActionState) {
+  if (action.action_type === "upload") return ["open", "changes_requested"].includes(action.status);
+  if (action.action_type === "approval" || action.action_type === "info") return action.status === "open";
+  return action.status === "open";
+}
+
+function waitsForOwner(action: ActionState) {
+  if (action.status === "submitted") return true;
+  return action.action_type === "approval" && action.status === "changes_requested";
+}
 
 function formatBytes(bytes: number | null) {
   if (!bytes) return "–";
@@ -96,9 +107,11 @@ export default async function PortalPage({
   const projectList = projectsResult.data ?? [];
   const projectNames = new Map(projectList.map((project) => [project.id, project.name]));
   const actionList = (actionsResult.data ?? []).map((action) => ({ ...action, projectName: projectNames.get(action.project_id) ?? "Projekt" }));
-  const openActions = actionList.filter((action) => !["approved", "done"].includes(action.status));
+  const clientActions = actionList.filter(needsClientAction);
+  const waitingActions = actionList.filter(waitsForOwner);
   const activeProject = projectList[0] ?? null;
-  const primaryAction = openActions[0] ?? null;
+  const primaryAction = clientActions[0] ?? null;
+  const waitingAction = waitingActions[0] ?? null;
   const profile = profileResult.data;
   const notifications = notificationsResult.data ?? [];
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
@@ -181,27 +194,29 @@ export default async function PortalPage({
           </article>
 
           <article className="client-focus-card next-action-card">
-            <div className="eyebrow">Nächster Schritt</div>
+            <div className="eyebrow">{primaryAction ? "Nächster Schritt" : waitingAction ? "Bei uns in Bearbeitung" : "Aktueller Stand"}</div>
             {primaryAction ? <>
               <div className="action-type-row"><span className="action-type-pill">{actionTypeLabels[primaryAction.action_type]}</span>{primaryAction.due_at ? <span className="action-due"><Clock3 size={14} aria-hidden="true" />bis {formatShortDate(primaryAction.due_at)}</span> : null}</div>
               <h2>{primaryAction.title}</h2>
               <p>{primaryAction.description || "Diese Aufgabe ist der nächste sinnvolle Schritt im Projekt."}</p>
               <a className="primary-button button-link" href={`#action-${primaryAction.id}`}>Jetzt erledigen</a>
-            </> : <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>Du bist auf dem aktuellen Stand.</strong><span>Im Moment ist nichts von dir erforderlich.</span></div></div>}
+            </> : waitingAction ? (
+              <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>Dein Teil ist erledigt.</strong><span>{waitingAction.action_type === "approval" && waitingAction.status === "changes_requested" ? "Dein Änderungswunsch ist angekommen. Wir kümmern uns darum und melden uns mit dem nächsten Stand." : `„${waitingAction.title}“ wurde eingereicht. Wir prüfen das und melden uns, sobald es weitergeht.`}</span></div></div>
+            ) : <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>Du bist auf dem aktuellen Stand.</strong><span>Im Moment ist nichts von dir erforderlich.</span></div></div>}
           </article>
         </section>
 
         <section className="client-actions-section" id="aktionen" aria-labelledby="actions-title">
           <div className="section-heading">
             <div><div className="eyebrow">Deine nächsten Schritte</div><h2 id="actions-title">Was jetzt von dir gebraucht wird</h2></div>
-            <span className="badge">{openActions.length} offen</span>
+            <span className="badge">{clientActions.length} offen</span>
           </div>
 
-          {openActions.length === 0 ? (
-            <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>Alles erledigt.</strong><span>Du musst aktuell nichts tun.</span></div></div>
+          {clientActions.length === 0 ? (
+            <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>{waitingActions.length ? "Von dir ist gerade nichts offen." : "Alles erledigt."}</strong><span>{waitingActions.length ? "Wir sind am Zug. Sobald wir wieder etwas von dir brauchen, erscheint es hier." : "Du musst aktuell nichts tun."}</span></div></div>
           ) : (
             <div className="client-action-list">
-              {openActions.map((action) => (
+              {clientActions.map((action) => (
                 <article className={`client-action-card action-${action.action_type}`} id={`action-${action.id}`} key={action.id}>
                   <div className="client-action-card-head">
                     <div>
@@ -209,7 +224,7 @@ export default async function PortalPage({
                       <h3>{action.title}</h3>
                       <p className="request-project">{action.projectName}{action.due_at ? ` · bis ${formatShortDate(action.due_at)}` : ""}</p>
                     </div>
-                    {action.action_type === "upload" ? <a className="primary-button button-link" href={`?action=${encodeURIComponent(action.id)}#upload`}>{action.status === "submitted" ? "Weitere Datei" : "Dateien hochladen"}</a> : null}
+                    {action.action_type === "upload" ? <a className="primary-button button-link" href={`?action=${encodeURIComponent(action.id)}#upload`}>Dateien hochladen</a> : null}
                   </div>
                   {action.description ? <p className="request-description">{action.description}</p> : null}
 
