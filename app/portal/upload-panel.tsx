@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { CheckCircle2, CloudUpload, FileText, LoaderCircle, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Project = { id: string; name: string };
@@ -9,6 +10,7 @@ type ProjectRequest = { id: string; projectId: string; title: string; status: "o
 type ProjectAction = { id: string; projectId: string; title: string; type: "upload" | "approval" | "info"; status: string };
 type Category = "document" | "image" | "video" | "other";
 type UploadMode = "client" | "admin";
+type FeedbackTone = "neutral" | "success" | "warning" | "error";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
@@ -22,6 +24,11 @@ function inferCategory(file: File): Category {
   const extension = file.name.split(".").pop()?.toLowerCase();
   if (["pdf", "doc", "docx", "txt", "rtf", "odt", "xls", "xlsx", "csv", "ppt", "pptx"].includes(extension ?? "")) return "document";
   return "other";
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function UploadPanel({
@@ -52,15 +59,22 @@ export function UploadPanel({
   const [files, setFiles] = useState<File[]>([]);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState("");
+  const [tone, setTone] = useState<FeedbackTone>("neutral");
   const [uploading, setUploading] = useState(false);
   const projectActions = actions.filter((action) => action.projectId === projectId && action.type === "upload" && !["done", "approved"].includes(action.status));
   const projectRequests = requests.filter((request) => request.projectId === projectId && request.status !== "done");
+
+  function setFeedback(text: string, nextTone: FeedbackTone = "neutral") {
+    setStatus(text);
+    setTone(nextTone);
+  }
 
   function handleFiles(selectedFiles: File[]) {
     setFiles(selectedFiles);
     if (!selectedFiles.length) return;
     const categories = Array.from(new Set(selectedFiles.map(inferCategory)));
     setCategory(categories.length === 1 ? categories[0] : "other");
+    setFeedback(`${selectedFiles.length} ${selectedFiles.length === 1 ? "Datei" : "Dateien"} bereit zum Upload.`);
   }
 
   function handleProjectChange(nextProjectId: string) {
@@ -78,27 +92,29 @@ export function UploadPanel({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!files.length || !projectId) return setStatus("Bitte Projekt und mindestens eine Datei auswählen.");
+    const form = event.currentTarget;
+    if (!files.length || !projectId) return setFeedback("Bitte Projekt und mindestens eine Datei auswählen.", "error");
     const oversizedFile = files.find((file) => file.size > MAX_FILE_SIZE);
-    if (oversizedFile) return setStatus(`${oversizedFile.name} ist größer als 100 MB.`);
-    if (note.trim().length > 2000) return setStatus("Die Notiz darf maximal 2.000 Zeichen lang sein.");
+    if (oversizedFile) return setFeedback(`${oversizedFile.name} ist größer als 100 MB.`, "error");
+    if (note.trim().length > 2000) return setFeedback("Die Notiz darf maximal 2.000 Zeichen lang sein.", "error");
 
     setUploading(true);
-    setStatus("Upload wird vorbereitet …");
+    setFeedback("Upload wird vorbereitet …");
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      setStatus("Deine Sitzung ist abgelaufen. Bitte neu anmelden.");
+      setFeedback("Deine Sitzung ist abgelaufen. Bitte neu anmelden.", "error");
       setUploading(false);
       return;
     }
 
     const uploadId = crypto.randomUUID();
     const uploadedPaths: string[] = [];
+    let persisted = false;
 
     try {
       for (let index = 0; index < files.length; index += 1) {
         const file = files[index];
-        setStatus(`Upload läuft … ${index + 1} von ${files.length}`);
+        setFeedback(`Upload läuft … ${index + 1} von ${files.length}`);
         const storagePath = `${user.id}/${projectId}/${uploadId}-${crypto.randomUUID()}-${safeFileName(file.name)}`;
         const { error: uploadError } = await supabase.storage.from("project-files").upload(storagePath, file, { cacheControl: "3600", upsert: false, contentType: file.type || undefined });
         if (uploadError) throw uploadError;
@@ -121,33 +137,42 @@ export function UploadPanel({
       }
 
       if (effectiveMode === "client" && actionId) {
-        const { error: actionError } = await supabase.rpc("submit_project_action", { p_action_id: actionId });
-        if (actionError) throw actionError;
+        const { data: updated, error: actionError } = await supabase.rpc("submit_project_action", { p_action_id: actionId });
+        if (actionError || !updated) throw actionError ?? new Error("Die zugehörige Aufgabe konnte nicht aktualisiert werden.");
       }
 
-      const notificationResponse = await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "upload", projectId, eventId: uploadId }),
-      });
-      const notification = (await notificationResponse.json().catch(() => null)) as { configured?: boolean; failed?: unknown[] } | null;
-
-      if (!notification?.configured) setStatus("Upload erfolgreich. Die E-Mail-Benachrichtigung ist noch nicht aktiviert.");
-      else if (notification.failed?.length) setStatus("Upload erfolgreich. Mindestens eine E-Mail konnte nicht zugestellt werden.");
-      else if (effectiveMode === "admin") setStatus("Upload erfolgreich. Der Kunde wurde automatisch per E-Mail benachrichtigt.");
-      else setStatus(actionId ? "Upload erfolgreich. Die Aufgabe wurde als eingereicht markiert und Hasim wurde benachrichtigt." : "Upload erfolgreich. Hasim Üner wurde benachrichtigt und du hast eine Bestätigung per E-Mail erhalten.");
-
+      persisted = true;
       setFiles([]);
       setNote("");
       setActionId("");
       setRequestId("");
-      event.currentTarget.reset();
+      form.reset();
       setProjectId(projects[0]?.id ?? "");
       setCategory("document");
+      setFeedback("Upload gespeichert. Benachrichtigung wird versendet …");
       router.refresh();
+
+      try {
+        const notificationResponse = await fetch("/api/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "upload", projectId, eventId: uploadId }),
+        });
+        const notification = (await notificationResponse.json().catch(() => null)) as { configured?: boolean; failed?: unknown[] } | null;
+
+        if (!notification?.configured) setFeedback("Upload gespeichert. Die E-Mail-Benachrichtigung ist derzeit nicht aktiviert.", "warning");
+        else if (notification.failed?.length) setFeedback("Upload gespeichert. Mindestens eine E-Mail-Benachrichtigung konnte nicht zugestellt werden.", "warning");
+        else if (effectiveMode === "admin") setFeedback("Upload gespeichert. Der Kunde wurde automatisch informiert.", "success");
+        else setFeedback(actionId ? "Upload gespeichert. Die Aufgabe ist eingereicht und Hasim wurde informiert." : "Upload gespeichert. Hasim wurde automatisch informiert.", "success");
+      } catch {
+        setFeedback("Upload gespeichert. Die E-Mail-Benachrichtigung konnte gerade nicht versendet werden.", "warning");
+      }
     } catch (error) {
-      if (uploadedPaths.length) await Promise.all([supabase.storage.from("project-files").remove(uploadedPaths), supabase.from("project_files").delete().eq("upload_id", uploadId)]);
-      setStatus(`Upload fehlgeschlagen: ${error instanceof Error ? error.message : "Unbekannter Fehler"}`);
+      if (!persisted && uploadedPaths.length) {
+        await supabase.storage.from("project-files").remove(uploadedPaths);
+        await supabase.from("project_files").delete().eq("upload_id", uploadId);
+      }
+      setFeedback(`Upload fehlgeschlagen: ${error instanceof Error ? error.message : "Unbekannter Fehler"}`, "error");
     } finally {
       setUploading(false);
     }
@@ -155,47 +180,37 @@ export function UploadPanel({
 
   if (!projects.length) return <section className="upload-panel" id="upload"><h2>Dateien hochladen</h2><p className="muted">Es ist noch kein Projekt vorhanden.</p></section>;
 
+  const FeedbackIcon = tone === "success" ? CheckCircle2 : tone === "warning" || tone === "error" ? TriangleAlert : uploading ? LoaderCircle : CloudUpload;
+
   return (
-    <section className="upload-panel" id="upload" aria-labelledby="upload-title">
+    <section className="upload-panel interaction-panel" id="upload" aria-labelledby="upload-title">
       <div className="section-heading compact-heading">
-        <div><div className="eyebrow">Dateiaustausch</div><h2 id="upload-title">Dateien hochladen</h2><p className="muted" id="upload-help">Mehrere Dateien gleichzeitig möglich. Maximal 100 MB pro Datei.</p></div>
+        <div><div className="eyebrow">Dateiaustausch</div><h2 id="upload-title">Dateien sicher übergeben</h2><p className="muted" id="upload-help">Mehrere Dateien gleichzeitig möglich. Maximal 100 MB pro Datei.</p></div>
         {files.length ? <span className="badge">{files.length} ausgewählt</span> : null}
       </div>
 
       <form className="upload-form upload-form-expanded" onSubmit={handleSubmit} aria-busy={uploading}>
-        <label htmlFor="upload-project">Projekt</label>
-        <select id="upload-project" value={projectId} onChange={(event) => handleProjectChange(event.target.value)} required disabled={uploading}>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
+        <div className="form-field-grid two-columns">
+          <div className="form-field"><label htmlFor="upload-project">Projekt</label><select id="upload-project" value={projectId} onChange={(event) => handleProjectChange(event.target.value)} required disabled={uploading}>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>
+          <div className="form-field"><label htmlFor="upload-category">Bereich</label><select id="upload-category" value={category} onChange={(event) => setCategory(event.target.value as Category)} disabled={uploading}><option value="image">Bilder & Grafiken</option><option value="document">Dokumente & PDF</option><option value="video">Videos</option><option value="other">Sonstiges</option></select></div>
+        </div>
 
-        {effectiveMode === "client" && projectActions.length ? <>
-          <label htmlFor="upload-action">Zu welcher Aufgabe gehört der Upload?</label>
-          <select id="upload-action" value={actionId} onChange={(event) => handleActionChange(event.target.value)} disabled={uploading}>
-            <option value="">Allgemeiner Projekt-Upload</option>
-            {projectActions.map((action) => <option key={action.id} value={action.id}>{action.status === "submitted" ? "Bereits eingereicht: " : "Benötigt: "}{action.title}</option>)}
-          </select>
-        </> : effectiveMode === "client" && projectRequests.length ? <>
-          <label htmlFor="upload-request">Wofür sind die Dateien?</label>
-          <select id="upload-request" value={requestId} onChange={(event) => setRequestId(event.target.value)} disabled={uploading}>
-            <option value="">Allgemeiner Projekt-Upload</option>
-            {projectRequests.map((request) => <option key={request.id} value={request.id}>{request.status === "submitted" ? "Bereits eingereicht: " : "Benötigt: "}{request.title}</option>)}
-          </select>
-        </> : null}
+        {effectiveMode === "client" && projectActions.length ? <div className="form-field"><label htmlFor="upload-action">Zu welcher Aufgabe gehört der Upload?</label><select id="upload-action" value={actionId} onChange={(event) => handleActionChange(event.target.value)} disabled={uploading}><option value="">Allgemeiner Projekt-Upload</option>{projectActions.map((action) => <option key={action.id} value={action.id}>{action.status === "submitted" ? "Bereits eingereicht: " : "Benötigt: "}{action.title}</option>)}</select></div> : effectiveMode === "client" && projectRequests.length ? <div className="form-field"><label htmlFor="upload-request">Wofür sind die Dateien?</label><select id="upload-request" value={requestId} onChange={(event) => setRequestId(event.target.value)} disabled={uploading}><option value="">Allgemeiner Projekt-Upload</option>{projectRequests.map((request) => <option key={request.id} value={request.id}>{request.status === "submitted" ? "Bereits eingereicht: " : "Benötigt: "}{request.title}</option>)}</select></div> : null}
 
-        <label htmlFor="upload-category">Bereich</label>
-        <select id="upload-category" value={category} onChange={(event) => setCategory(event.target.value as Category)} disabled={uploading}>
-          <option value="image">Bilder & Grafiken</option><option value="document">Dokumente & PDF</option><option value="video">Videos</option><option value="other">Sonstiges</option>
-        </select>
+        <div className="dropzone-shell">
+          <CloudUpload size={24} aria-hidden="true" />
+          <div><strong>Dateien auswählen</strong><span>PDF, Office, Bilder, Videos und weitere Projektdateien</span></div>
+          <input id="upload-files" type="file" multiple aria-describedby="upload-help" onChange={(event) => handleFiles(Array.from(event.target.files ?? []))} required disabled={uploading} />
+        </div>
 
-        <label htmlFor="upload-files">Dateien</label>
-        <input id="upload-files" type="file" multiple aria-describedby="upload-help" onChange={(event) => handleFiles(Array.from(event.target.files ?? []))} required disabled={uploading} />
-        {files.length ? <ul className="selected-files" aria-label="Ausgewählte Dateien">{files.map((file) => <li key={`${file.name}-${file.size}`}>{file.name}</li>)}</ul> : null}
+        {files.length ? <ul className="selected-files premium-selected-files" aria-label="Ausgewählte Dateien">{files.map((file) => <li key={`${file.name}-${file.size}`}><FileText size={15} aria-hidden="true" /><span>{file.name}</span><small>{formatBytes(file.size)}</small></li>)}</ul> : null}
 
-        <label htmlFor="upload-note">Notiz zum Upload <span className="optional-label">optional</span></label>
-        <textarea id="upload-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={2000} rows={4} placeholder="Zum Beispiel: Bitte nur diese Logo-Version verwenden." disabled={uploading} />
+        <div className="form-field"><label htmlFor="upload-note">Notiz zum Upload <span className="optional-label">optional</span></label><textarea id="upload-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={2000} rows={4} placeholder="Zum Beispiel: Bitte nur diese Logo-Version verwenden." disabled={uploading} /></div>
 
-        <div className="upload-actions"><span className="muted note-counter" aria-hidden="true">{note.length}/2000</span><button className="primary-button" type="submit" disabled={uploading}>{uploading ? "Wird hochgeladen …" : files.length > 1 ? `${files.length} Dateien hochladen` : "Datei hochladen"}</button></div>
+        <div className="upload-actions"><span className="muted note-counter" aria-hidden="true">{note.length}/2000</span><button className="primary-button" type="submit" disabled={uploading}>{uploading ? <><LoaderCircle className="spin" size={16} aria-hidden="true" />Wird hochgeladen …</> : files.length > 1 ? `${files.length} Dateien hochladen` : "Datei hochladen"}</button></div>
       </form>
 
-      {status ? <p className="upload-status" role="status" aria-live="polite">{status}</p> : null}
+      {status ? <div className={`inline-feedback feedback-${tone}`} role={tone === "error" ? "alert" : "status"} aria-live="polite"><FeedbackIcon className={uploading ? "spin" : undefined} size={17} aria-hidden="true" /><span>{status}</span></div> : null}
     </section>
   );
 }
