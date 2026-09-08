@@ -9,6 +9,10 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(value));
 }
 
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 const phaseLabels: Record<string, string> = {
   onboarding: "Onboarding",
   content: "Inhalte & Material",
@@ -19,7 +23,14 @@ const phaseLabels: Record<string, string> = {
   completed: "Abgeschlossen",
 };
 
-export default async function ClientsPage() {
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ message?: string | string[]; error?: string | string[] }>;
+}) {
+  const query = await searchParams;
+  const message = first(query.message);
+  const errorMessage = first(query.error);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -50,6 +61,9 @@ export default async function ClientsPage() {
         </div>
         <Link className="secondary-button button-link" href="/admin">← Admin-Übersicht</Link>
       </div>
+
+      {message ? <div className="form-success" role="status">{message}</div> : null}
+      {errorMessage ? <div className="portal-warning" role="alert">{errorMessage}</div> : null}
 
       <section className="client-overview-grid" aria-label="Kundenübersicht">
         <article className="client-overview-card">
