@@ -4,6 +4,7 @@ import "./portal/portal.css";
 import "./portal.css";
 import "./portal-v2.css";
 import "./premium-polish.css";
+import "./communication-health.css";
 
 export const metadata: Metadata = {
   title: {
