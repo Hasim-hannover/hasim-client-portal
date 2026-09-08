@@ -6,16 +6,17 @@ import { createClient } from "@/lib/supabase/server";
 import { updateClientProfile } from "../actions";
 import { ClientAccountActions } from "./client-account-actions";
 import { CommunicationHealth } from "./communication-health";
+import { ProjectStartAdminPanel } from "./project-start-admin-panel";
 
 export const dynamic = "force-dynamic";
 
 const phaseLabels: Record<string, string> = {
-  onboarding: "Onboarding",
-  content: "Inhalte & Material",
-  concept: "Konzept",
-  development: "Umsetzung",
-  review: "Prüfung & Freigabe",
-  launch: "Launch",
+  onboarding: "Kick-off & Bestandsaufnahme",
+  content: "Design & Inhalte",
+  concept: "Konzept & Leitseiten",
+  development: "Entwicklung",
+  review: "Qualitätssicherung & Abnahme",
+  launch: "Livegang & Übergabe",
   completed: "Abgeschlossen",
 };
 
@@ -211,6 +212,7 @@ export default async function ClientDossierPage({
 
       <nav className="dossier-subnav" aria-label="Bereiche der Kundenakte">
         <a href="#overview">Übersicht</a>
+        <a href="#project-start">Projektstart</a>
         <a href="#access">Zugang</a>
         <a href="#projects">Projekte</a>
         <a href="#customer-files">Kundenuploads</a>
@@ -238,6 +240,8 @@ export default async function ClientDossierPage({
           <span className="phase-pill">{phaseLabels[latestProject.phase] ?? latestProject.phase}</span>
         </section>
       ) : null}
+
+      <ProjectStartAdminPanel clientId={client.id} projects={projectRows.map(({ id: projectId, name }) => ({ id: projectId, name }))} />
 
       <section className="admin-grid" id="access">
         <article className="admin-panel">
