@@ -35,8 +35,129 @@
 .delivery-row.is-error { border-color: #dfc9c6; }
 .delivery-summary.is-ok, .delivery-summary.has-errors { background: var(--surface-subtle); border-color: var(--border); color: var(--text-soft); }
 
+/* WERK project start gate */
+.client-start-section { display: grid; gap: 18px; margin: 22px 0 0; scroll-margin-top: 22px; }
+.client-start-gate, .client-commercial-documents, .project-start-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.client-start-gate, .client-commercial-documents { padding: clamp(18px, 2.6vw, 28px); }
+.client-start-gate-head, .project-start-card-head, .project-start-submit, .start-gate-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.client-start-gate-head h2, .project-start-card-head h3 { margin: 4px 0 7px; }
+.client-start-gate-head p, .project-start-card-head p { margin: 0; color: var(--muted); }
+.start-progress-copy { min-width: 96px; text-align: right; }
+.start-progress-copy strong, .start-progress-copy span { display: block; }
+.start-progress-copy strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+.start-progress-copy span { margin-top: 2px; color: var(--muted); font-size: 12px; }
+.start-progress { height: 7px; margin: 18px 0; overflow: hidden; border-radius: 999px; background: var(--surface-muted); }
+.start-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--success); transition: width .2s ease; }
+
+.client-start-requirements, .start-requirement-admin-list { display: grid; gap: 8px; }
+.client-start-requirement {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 14px 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
+.client-start-requirement.is-done { border-color: var(--success-border); background: var(--success-bg); }
+.client-start-requirement.is-submitted { border-color: var(--info-border); background: var(--info-bg); }
+.client-start-requirement-icon { display: grid; place-items: center; color: var(--muted); }
+.client-start-requirement.is-done .client-start-requirement-icon { color: var(--success); }
+.client-start-requirement-main p { margin: 5px 0 8px; color: var(--text-soft); font-size: 13px; line-height: 1.5; }
+.start-requirement-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.requirement-tag, .requirement-status, .invoice-status, .start-gate-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+.requirement-tag { padding: 4px 7px; }
+.requirement-tag.is-optional { color: var(--muted); font-weight: 600; }
+.requirement-status { padding: 5px 8px; }
+.requirement-status-verified, .requirement-status-not_needed, .invoice-status.is-paid, .start-gate-status.is-ready { border-color: var(--success-border); background: var(--success-bg); color: var(--success); }
+.requirement-status-submitted { border-color: var(--info-border); background: var(--info-bg); color: var(--info); }
+.client-start-submit-form { justify-self: end; }
+.client-start-submit-form button { white-space: nowrap; }
+.start-gate-foot { justify-content: flex-start; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+
+.client-document-grid, .project-document-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.client-document-column, .project-document-column { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+.client-document-heading { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.client-document-record, .document-record { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--border); }
+.client-document-record:first-of-type, .document-record:first-of-type { border-top: 0; }
+.client-document-record strong, .client-document-record span, .document-record strong, .document-record span { display: block; }
+.client-document-record span, .document-record span { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.client-document-record p, .document-record p { margin: 6px 0 0; color: var(--text-soft); font-size: 13px; line-height: 1.45; }
+.document-record-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.invoice-status { padding: 6px 9px; }
+.invoice-status.is-open { border-color: var(--warning-border); background: var(--warning-bg); color: var(--warning); }
+
+.project-start-admin { scroll-margin-top: 22px; }
+.project-start-admin-list { display: grid; gap: 18px; margin-top: 18px; }
+.project-start-card { padding: clamp(16px, 2vw, 24px); }
+.start-gate-status { padding: 8px 10px; white-space: nowrap; }
+.start-gate-status.is-pending { border-color: var(--warning-border); background: var(--warning-bg); color: var(--warning); }
+.start-requirement-admin-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(300px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.start-requirement-admin-row:first-child { border-top: 0; }
+.start-requirement-copy p { margin: 5px 0; color: var(--text-soft); font-size: 13px; }
+.start-requirement-copy small { color: var(--info); }
+.start-requirement-controls { display: grid; grid-template-columns: auto minmax(150px, .7fr) minmax(170px, 1fr) auto; gap: 8px; align-items: center; }
+.inline-checkbox { display: inline-flex; align-items: center; gap: 6px; color: var(--text-soft); font-size: 12px; white-space: nowrap; }
+.inline-checkbox input { width: 16px; height: 16px; }
+.project-start-submit { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-subtle); }
+.project-start-submit strong, .project-start-submit span { display: block; }
+.project-start-submit span { margin-top: 3px; color: var(--muted); font-size: 12px; }
+.project-document-grid { margin-top: 18px; }
+.admin-document-upload { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.invoice-meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.document-upload-feedback { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--text-soft); font-size: 13px; }
+.document-upload-feedback.is-success { border-color: var(--success-border); background: var(--success-bg); color: var(--success); }
+.document-upload-feedback.is-error { border-color: var(--danger-border); background: var(--danger-bg); color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .start-progress > span { transition: none; }
+}
+
+@media (max-width: 1000px) {
+  .start-requirement-admin-row { grid-template-columns: 1fr; }
+  .start-requirement-controls { grid-template-columns: 1fr 1fr; }
+  .start-requirement-admin-row > .requirement-status { justify-self: start; }
+}
+
 @media (max-width: 700px) {
-  .status, .file-row { flex-direction: column; align-items: flex-start; }
+  .status, .file-row, .client-start-gate-head, .project-start-card-head, .project-start-submit, .client-document-record, .document-record { flex-direction: column; align-items: flex-start; }
   .workspace-header-actions { justify-content: flex-start; width: 100%; }
   .workspace-header-actions .button-link { flex: 1 1 auto; }
+  .client-start-requirement { grid-template-columns: auto minmax(0,1fr); }
+  .client-start-submit-form { grid-column: 1 / -1; justify-self: stretch; width: 100%; }
+  .client-start-submit-form button { width: 100%; justify-content: center; }
+  .client-document-grid, .project-document-grid, .invoice-meta-grid { grid-template-columns: 1fr; }
+  .start-progress-copy { text-align: left; }
+  .start-requirement-controls { grid-template-columns: 1fr; }
+  .document-record-actions { justify-content: flex-start; }
 }
