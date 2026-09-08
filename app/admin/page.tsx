@@ -52,7 +52,7 @@ export default async function AdminPage({
   if (ownProfile?.role !== "admin") redirect("/portal");
 
   const [profilesResult, projectsResult, messagesResult, filesResult, requestsResult] = await Promise.all([
-    supabase.from("profiles").select("id, full_name, email, role, created_at").order("created_at", { ascending: false }),
+    supabase.from("profiles").select("id, client_number, full_name, company_name, email, role, created_at").order("created_at", { ascending: false }),
     supabase.from("projects").select("id, client_id, name, status, phase, phase_note, created_at, updated_at").order("created_at", { ascending: false }),
     supabase.from("project_messages").select("id, project_id, sender_id, body, created_at").order("created_at", { ascending: false }).limit(12),
     supabase.from("project_files").select("id, project_id, file_name, storage_path, size_bytes, created_at").order("created_at", { ascending: false }).limit(12),
@@ -90,10 +90,10 @@ export default async function AdminPage({
         <div className="brand">Hasim Client Portal</div>
         <nav className="nav" aria-label="Admin Navigation">
           <a className="nav-item active" href="#overview" aria-current="location">Übersicht</a>
-          <a className="nav-item" href="#system">System</a>
-          <a className="nav-item" href="#clients">Kunden</a>
+          <Link className="nav-item" href="/admin/clients">Kundenakten</Link>
           <a className="nav-item" href="#projects">Projekte</a>
           <a className="nav-item" href="#communication">Kommunikation</a>
+          <a className="nav-item" href="#system">System</a>
           <Link className="nav-item" href="/portal">Kundenansicht</Link>
         </nav>
         <form action={logout} className="logout-form">
@@ -132,9 +132,26 @@ export default async function AdminPage({
           </article>
 
           <article className="admin-panel">
-            <div className="section-heading compact-heading"><div><div className="eyebrow">Bestand</div><h2>Kunden</h2></div><span className="badge">{clients.length}</span></div>
+            <div className="section-heading compact-heading">
+              <div><div className="eyebrow">Bestand</div><h2>Kunden</h2></div>
+              <Link className="secondary-button button-link" href="/admin/clients">Alle Kundenakten</Link>
+            </div>
             {clients.length === 0 ? <div className="empty-state">Noch keine echten Kundenkonten angelegt.</div> : (
-              <div className="admin-list">{clients.map((client) => <div className="admin-list-row" key={client.id}><div><strong>{client.full_name || "Ohne Namen"}</strong><span>{client.email || "Keine E-Mail"}</span></div><span className="badge">{projects.filter((project) => project.client_id === client.id).length} Projekte</span></div>)}</div>
+              <div className="admin-list">
+                {clients.slice(0, 6).map((client) => {
+                  const displayName = client.company_name || client.full_name || "Ohne Namen";
+                  const projectCount = projects.filter((project) => project.client_id === client.id).length;
+                  return (
+                    <div className="admin-list-row" key={client.id}>
+                      <div>
+                        <strong>{displayName}</strong>
+                        <span>{client.client_number || "Ohne Kundennummer"} · {client.email || "Keine E-Mail"} · {projectCount} {projectCount === 1 ? "Projekt" : "Projekte"}</span>
+                      </div>
+                      <Link className="secondary-button button-link" href={`/admin/clients/${client.id}`}>Kundenakte öffnen</Link>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </article>
         </section>
@@ -143,7 +160,7 @@ export default async function AdminPage({
           <div className="section-heading"><div><div className="eyebrow">Projektsteuerung</div><h2 id="projects-title">Projekte, Phase & benötigte Inhalte</h2></div><span className="badge">{projects.length}</span></div>
           {clients.length ? (
             <form action={createProject} className="admin-create-project-form">
-              <label htmlFor="project-client">Kunde</label><select id="project-client" name="clientId" required>{clients.map((client) => <option key={client.id} value={client.id}>{client.full_name || client.email}</option>)}</select>
+              <label htmlFor="project-client">Kunde</label><select id="project-client" name="clientId" required>{clients.map((client) => <option key={client.id} value={client.id}>{client.company_name || client.full_name || client.email}</option>)}</select>
               <label htmlFor="project-name">Projektname</label><input id="project-name" name="name" required maxLength={160} placeholder="Website Relaunch" />
               <button className="secondary-button" type="submit">Projekt anlegen</button>
             </form>
@@ -155,7 +172,7 @@ export default async function AdminPage({
               const projectRequests = requests.filter((request) => request.project_id === project.id);
               return (
                 <article className="admin-project-card" key={project.id}>
-                  <div className="admin-project-head"><div><strong>{project.name}</strong><span>{client?.full_name || client?.email || "Test-/Adminprojekt"} · aktualisiert {formatDate(project.updated_at)}</span></div><span className="phase-pill">{phaseLabels[project.phase] ?? project.phase}</span></div>
+                  <div className="admin-project-head"><div><strong>{project.name}</strong><span>{client?.company_name || client?.full_name || client?.email || "Test-/Adminprojekt"} · aktualisiert {formatDate(project.updated_at)}</span></div><span className="phase-pill">{phaseLabels[project.phase] ?? project.phase}</span></div>
 
                   <form action={updateProjectPhase} className="admin-phase-form">
                     <input type="hidden" name="projectId" value={project.id} />
@@ -201,7 +218,7 @@ export default async function AdminPage({
         <section className="admin-grid" aria-label="Letzte Aktivität">
           <article className="admin-panel">
             <div className="section-heading compact-heading"><div><div className="eyebrow">Aktivität</div><h2>Letzte Nachrichten</h2></div></div>
-            {messages.length === 0 ? <div className="empty-state">Keine Nachrichten.</div> : <div className="admin-list">{messages.map((entry) => { const project = projectById.get(entry.project_id); const sender = profileById.get(entry.sender_id); return <div className="admin-list-row admin-message-row" key={entry.id}><div><strong>{sender?.full_name || sender?.email || "Unbekannt"}</strong><span>{project?.name || "Projekt"} · {formatDate(entry.created_at)}</span><p>{entry.body}</p></div></div>; })}</div>}
+            {messages.length === 0 ? <div className="empty-state">Keine Nachrichten.</div> : <div className="admin-list">{messages.map((entry) => { const project = projectById.get(entry.project_id); const sender = profileById.get(entry.sender_id); return <div className="admin-list-row admin-message-row" key={entry.id}><div><strong>{sender?.company_name || sender?.full_name || sender?.email || "Unbekannt"}</strong><span>{project?.name || "Projekt"} · {formatDate(entry.created_at)}</span><p>{entry.body}</p></div></div>; })}</div>}
           </article>
           <article className="admin-panel">
             <div className="section-heading compact-heading"><div><div className="eyebrow">Aktivität</div><h2>Letzte Dateien</h2></div></div>
