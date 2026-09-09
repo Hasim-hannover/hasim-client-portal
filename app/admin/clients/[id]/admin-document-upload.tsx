@@ -20,7 +20,8 @@ async function isPdfFile(file: File) {
   if (file.type && file.type !== "application/pdf") return false;
 
   const header = new Uint8Array(await file.slice(0, PDF_SIGNATURE.length).arrayBuffer());
-  const signature = String.fromCharCode(...header);
+  if (header.length < PDF_SIGNATURE.length) return false;
+  const signature = String.fromCharCode(header[0], header[1], header[2], header[3], header[4]);
   return signature === PDF_SIGNATURE;
 }
 
