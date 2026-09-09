@@ -115,6 +115,22 @@ export async function completeInfoAction(formData: FormData) {
   revalidatePath("/admin/ops");
 }
 
+export async function submitStartRequirement(formData: FormData) {
+  const { supabase } = await requireUser();
+  const requirementId = String(formData.get("requirementId") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+  if (!requirementId || note.length > 1200) return;
+
+  const { data: updated, error } = await supabase.rpc("submit_project_start_requirement", {
+    p_requirement_id: requirementId,
+    p_note: note || null,
+  });
+  if (error || !updated) return;
+  revalidatePath("/portal");
+  revalidatePath("/admin");
+  revalidatePath("/admin/clients");
+}
+
 export async function markNotificationRead(formData: FormData) {
   const { supabase, user } = await requireUser();
   const notificationId = String(formData.get("notificationId") ?? "");
