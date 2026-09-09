@@ -1,6 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import {
+  getPwnedPasswordCount,
+  PasswordBreachCheckUnavailableError,
+} from "@/lib/security/pwned-passwords";
 import { createClient } from "@/lib/supabase/server";
 
 export async function updatePassword(formData: FormData) {
@@ -20,6 +24,18 @@ export async function updatePassword(formData: FormData) {
 
   if (!userData.user) {
     redirect("/forgot-password?error=Die%20Reset-Sitzung%20ist%20abgelaufen.%20Bitte%20fordere%20einen%20neuen%20Link%20an.");
+  }
+
+  try {
+    const pwnedCount = await getPwnedPasswordCount(password);
+    if (pwnedCount > 0) {
+      redirect("/account/update-password?error=Dieses%20Passwort%20ist%20in%20bekannten%20Datenlecks%20aufgetaucht.%20Bitte%20w%C3%A4hle%20ein%20anderes%20Passwort.");
+    }
+  } catch (error) {
+    if (error instanceof PasswordBreachCheckUnavailableError) {
+      redirect(`/account/update-password?error=${encodeURIComponent(error.message)}`);
+    }
+    throw error;
   }
 
   const { error } = await supabase.auth.updateUser({ password });
