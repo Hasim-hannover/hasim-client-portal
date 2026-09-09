@@ -9,9 +9,20 @@ type DocumentType = "contract" | "invoice" | "project" | "approval" | "handover"
 type Tone = "neutral" | "success" | "error";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
+const PDF_SIGNATURE = "%PDF-";
 
 function safeFileName(name: string) {
   return name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") || "dokument.pdf";
+}
+
+async function isPdfFile(file: File) {
+  if (!file.name.toLowerCase().endsWith(".pdf")) return false;
+  if (file.type && file.type !== "application/pdf") return false;
+
+  const header = new Uint8Array(await file.slice(0, PDF_SIGNATURE.length).arrayBuffer());
+  if (header.length < PDF_SIGNATURE.length) return false;
+  const signature = String.fromCharCode(header[0], header[1], header[2], header[3], header[4]);
+  return signature === PDF_SIGNATURE;
 }
 
 export function AdminDocumentUpload({ projectId, projectName }: { projectId: string; projectName: string }) {
@@ -38,7 +49,7 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
     const file = fileRef.current?.files?.[0];
     if (!file) return feedback("Bitte eine PDF-Datei auswählen.", "error");
     if (file.size > MAX_FILE_SIZE) return feedback("Die Datei ist größer als 100 MB.", "error");
-    if (file.type && file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) return feedback("Für Vertrags- und Rechnungsdokumente bitte eine PDF hochladen.", "error");
+    if (!(await isPdfFile(file))) return feedback("Bitte eine gültige PDF-Datei hochladen.", "error");
     if (label.trim().length > 160 || note.trim().length > 2000) return feedback("Titel oder Nachricht ist zu lang.", "error");
 
     const parsedAmount = invoiceAmount.trim() ? Number(invoiceAmount.replace(",", ".")) : null;
@@ -60,7 +71,7 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
       const { error: storageError } = await supabase.storage.from("project-files").upload(storagePath, file, {
         cacheControl: "3600",
         upsert: false,
-        contentType: file.type || "application/pdf",
+        contentType: "application/pdf",
       });
       if (storageError) throw storageError;
 
@@ -72,7 +83,7 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
         note: note.trim() || null,
         file_name: file.name,
         storage_path: storagePath,
-        mime_type: file.type || "application/pdf",
+        mime_type: "application/pdf",
         size_bytes: file.size,
         document_type: documentType,
         document_label: label.trim() || null,
