@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, FileText, FolderKanban, MessageSquare } from "lucide-react";
+import { CheckCircle2, FileText, FolderKanban, MessageSquare, ShieldCheck } from "lucide-react";
 import { login } from "./actions";
 import styles from "./login.module.css";
 
@@ -37,6 +37,8 @@ export default async function LoginPage({
 
   return (
     <main className={styles.shell} id="main-content">
+      <div className={styles.ambient} aria-hidden="true" />
+
       <div className={styles.layout}>
         <section className={styles.brandPanel} aria-labelledby="werk-intro-title">
           <div className={styles.wordmark} aria-label="WERK Klientenportal">
@@ -44,58 +46,76 @@ export default async function LoginPage({
             <span className={styles.wordmarkSub}>Klientenportal</span>
           </div>
 
-          <h1 id="werk-intro-title">Projekte. Klar organisiert.</h1>
-          <p className={styles.intro}>
-            WERK ist mein eigenentwickeltes Kundenportal für die Zusammenarbeit in laufenden Projekten.
-            Dokumente, Kommunikation, Freigaben und Projektfortschritt bleiben an einem zentralen Ort nachvollziehbar.
-          </p>
+          <div className={styles.brandCopy}>
+            <p className={styles.eyebrow}>Projektarbeit ohne Informationsverlust</p>
+            <h1 id="werk-intro-title">Projekte. Klar organisiert.</h1>
+            <p className={styles.intro}>
+              WERK ist mein eigenentwickeltes Kundenportal für die Zusammenarbeit in laufenden Projekten.
+              Dokumente, Kommunikation, Freigaben und Projektfortschritt bleiben an einem zentralen Ort nachvollziehbar.
+            </p>
+          </div>
 
           <div className={styles.features} aria-label="Funktionen des WERK Klientenportals">
-            {benefits.map(({ title, text, Icon }) => (
+            {benefits.map(({ title, text, Icon }, index) => (
               <article className={styles.feature} key={title}>
-                <div className={styles.featureIcon} aria-hidden="true">
-                  <Icon />
+                <div className={styles.featureTopline}>
+                  <span className={styles.featureIndex}>{String(index + 1).padStart(2, "0")}</span>
+                  <div className={styles.featureIcon} aria-hidden="true">
+                    <Icon />
+                  </div>
                 </div>
-                <div>
-                  <h2>{title}</h2>
-                  <p>{text}</p>
-                </div>
+                <h2>{title}</h2>
+                <p>{text}</p>
               </article>
             ))}
           </div>
 
           <p className={styles.signature}>
+            <span aria-hidden="true" />
             Entwickelt von Hasim Üner für die strukturierte Zusammenarbeit mit meinen Kund:innen.
           </p>
         </section>
 
         <section className={styles.loginCard} aria-labelledby="login-title">
-          <h2 id="login-title">Projektzugang</h2>
-          <p className={styles.cardLead}>Für bestehende Kund:innen.</p>
+          <div className={styles.cardTopline} aria-hidden="true" />
+
+          <div className={styles.cardMeta}>
+            <span>WERK / PROJEKTZUGANG</span>
+            <span className={styles.securityBadge}><ShieldCheck /> Geschützter Bereich</span>
+          </div>
+
+          <div className={styles.cardHeading}>
+            <h2 id="login-title">Projektzugang</h2>
+            <p className={styles.cardLead}>Für bestehende Kund:innen.</p>
+          </div>
 
           {message ? <div className={styles.success} role="status">{message}</div> : null}
 
           <form action={login} className={styles.form}>
-            <label htmlFor="login-email">E-Mail</label>
-            <input
-              id="login-email"
-              type="email"
-              name="email"
-              autoComplete="email"
-              inputMode="email"
-              placeholder="name@beispiel.de"
-              required
-            />
+            <div className={styles.field}>
+              <label htmlFor="login-email">E-Mail</label>
+              <input
+                id="login-email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="name@beispiel.de"
+                required
+              />
+            </div>
 
-            <label htmlFor="login-password">Passwort</label>
-            <input
-              id="login-password"
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              placeholder="Passwort eingeben"
-              required
-            />
+            <div className={styles.field}>
+              <label htmlFor="login-password">Passwort</label>
+              <input
+                id="login-password"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                placeholder="Passwort eingeben"
+                required
+              />
+            </div>
 
             <div className={styles.passwordHelp}>
               <Link href="/forgot-password">Passwort vergessen?</Link>
