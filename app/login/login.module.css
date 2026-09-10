@@ -1,0 +1,422 @@
+.shell {
+  min-height: 100svh;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 4vw, 64px);
+  background:
+    radial-gradient(circle at 78% 12%, rgba(255,255,255,.98) 0, rgba(255,255,255,0) 34%),
+    radial-gradient(circle at 6% 100%, rgba(54, 91, 135, .10) 0, rgba(54, 91, 135, 0) 34%),
+    linear-gradient(135deg, #f8fafc 0%, #f2f6fa 56%, #eef3f8 100%);
+  color: #0d1726;
+}
+
+.shell::before {
+  content: "";
+  position: absolute;
+  width: min(58vw, 880px);
+  height: min(58vw, 880px);
+  left: -28vw;
+  bottom: -42vw;
+  border-radius: 50%;
+  border: 1px solid rgba(42, 75, 115, .08);
+  box-shadow:
+    0 0 0 72px rgba(42, 75, 115, .025),
+    0 0 0 144px rgba(42, 75, 115, .018);
+  pointer-events: none;
+}
+
+.layout {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1320px);
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(520px, 1.1fr);
+  gap: clamp(52px, 6vw, 92px);
+  align-items: center;
+}
+
+.brandPanel {
+  max-width: 590px;
+  padding: 18px 0 16px;
+}
+
+.wordmark {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: clamp(42px, 5.5vw, 72px);
+}
+
+.wordmarkMain {
+  color: #0b1c33;
+  font-size: clamp(52px, 6vw, 78px);
+  font-weight: 850;
+  line-height: .92;
+  letter-spacing: -.055em;
+}
+
+.wordmarkSub {
+  color: #647994;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .31em;
+  text-transform: uppercase;
+}
+
+.brandPanel h1 {
+  margin: 0;
+  max-width: 640px;
+  color: #0b1c33;
+  font-size: clamp(34px, 3.4vw, 48px);
+  line-height: 1.03;
+  letter-spacing: -.042em;
+}
+
+.intro {
+  max-width: 610px;
+  margin: 20px 0 0;
+  color: #61738a;
+  font-size: clamp(16px, 1.25vw, 18px);
+  line-height: 1.66;
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 28px;
+  margin-top: 38px;
+}
+
+.feature {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.featureIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(33, 65, 102, .08);
+  border-radius: 14px;
+  background: rgba(236, 242, 248, .9);
+  color: #17375d;
+}
+
+.featureIcon svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.8;
+}
+
+.feature h2 {
+  margin: 1px 0 5px;
+  color: #14243a;
+  font-size: 14px;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+
+.feature p {
+  margin: 0;
+  color: #718198;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.signature {
+  margin: 38px 0 0;
+  padding-top: 24px;
+  border-top: 1px solid rgba(39, 69, 104, .12);
+  color: #8a98aa;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.loginCard {
+  width: min(100%, 660px);
+  justify-self: end;
+  padding: clamp(38px, 4.6vw, 58px);
+  border: 1px solid rgba(35, 65, 99, .13);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow:
+    0 28px 80px rgba(23, 45, 72, .10),
+    0 3px 10px rgba(23, 45, 72, .035);
+  backdrop-filter: blur(12px);
+}
+
+.loginCard h2 {
+  margin: 0;
+  color: #0b1c33;
+  font-size: clamp(38px, 4.1vw, 56px);
+  line-height: 1;
+  letter-spacing: -.05em;
+}
+
+.cardLead {
+  margin: 14px 0 0;
+  color: #647994;
+  font-size: clamp(16px, 1.4vw, 19px);
+  line-height: 1.5;
+}
+
+.success,
+.error {
+  margin: 24px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.success {
+  border: 1px solid #c8e2d1;
+  background: #f0f8f3;
+  color: #21633a;
+}
+
+.error {
+  border: 1px solid #e8c4bf;
+  background: #fff5f3;
+  color: #9a2f25;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+  margin-top: 38px;
+}
+
+.form label {
+  margin-top: 10px;
+  color: #13243b;
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.form label:first-child {
+  margin-top: 0;
+}
+
+.form input {
+  min-height: 62px;
+  border: 1px solid #cbd6e2;
+  border-radius: 12px;
+  padding: 0 17px;
+  background: rgba(255,255,255,.96);
+  color: #12233a;
+  font-size: 16px;
+  box-shadow: inset 0 1px 2px rgba(25, 48, 75, .025);
+}
+
+.form input::placeholder {
+  color: #a0adbd;
+}
+
+.form input:hover {
+  border-color: #adbdce;
+}
+
+.form input:focus {
+  outline: none;
+  border-color: #7894b2;
+  box-shadow: 0 0 0 4px rgba(45, 83, 126, .10);
+}
+
+.passwordHelp {
+  margin-top: 2px;
+  text-align: right;
+}
+
+.passwordHelp a,
+.support a,
+.privacy a {
+  color: #334f72;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+.passwordHelp a {
+  font-size: 13px;
+}
+
+.submit {
+  min-height: 66px;
+  margin-top: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0d213d 0%, #172f50 100%);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: 0 12px 28px rgba(16, 41, 72, .16);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.submit:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 16px 34px rgba(16, 41, 72, .20);
+}
+
+.submit:active {
+  transform: translateY(0);
+}
+
+.submitArrow {
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cardFooter {
+  margin-top: 34px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e7ef;
+}
+
+.support,
+.privacy {
+  margin: 0;
+  text-align: center;
+  color: #728399;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.privacy {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid #e7ecf2;
+}
+
+@media (max-width: 1080px) {
+  .layout {
+    grid-template-columns: minmax(0, .88fr) minmax(470px, 1.12fr);
+    gap: 40px;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .feature p {
+    max-width: 320px;
+  }
+}
+
+@media (max-width: 880px) {
+  .shell {
+    place-items: start center;
+    padding: 28px 20px 44px;
+  }
+
+  .layout {
+    width: min(100%, 680px);
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .brandPanel {
+    max-width: none;
+    padding: 6px 4px 0;
+  }
+
+  .wordmark {
+    margin-bottom: 34px;
+  }
+
+  .intro {
+    max-width: 640px;
+  }
+
+  .features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .signature {
+    margin-top: 28px;
+  }
+
+  .loginCard {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 560px) {
+  .shell {
+    padding: 22px 14px 32px;
+  }
+
+  .brandPanel {
+    padding-inline: 6px;
+  }
+
+  .wordmarkMain {
+    font-size: 50px;
+  }
+
+  .wordmarkSub {
+    font-size: 10px;
+    letter-spacing: .26em;
+  }
+
+  .brandPanel h1 {
+    font-size: 34px;
+  }
+
+  .intro {
+    font-size: 15px;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature p {
+    max-width: none;
+  }
+
+  .loginCard {
+    padding: 30px 22px;
+    border-radius: 20px;
+  }
+
+  .loginCard h2 {
+    font-size: 39px;
+  }
+
+  .cardLead {
+    font-size: 16px;
+  }
+
+  .form {
+    margin-top: 30px;
+  }
+
+  .form input {
+    min-height: 56px;
+  }
+
+  .submit {
+    min-height: 58px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .submit {
+    transition: none;
+  }
+}
