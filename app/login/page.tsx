@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { PrivacyContent } from "../datenschutz/privacy-content";
 import { login } from "./actions";
+import { PrivacyDialog } from "./privacy-dialog";
 import styles from "./login.module.css";
 
 const points = ["Dateien", "Abstimmungen", "Freigaben"];
@@ -96,7 +98,9 @@ export default async function LoginPage({
             <div className={styles.footerLinks}>
               <a href="mailto:hallo@hasimuener.de">Hilfe</a>
               <span aria-hidden="true">·</span>
-              <Link href="/datenschutz">Datenschutz</Link>
+              <PrivacyDialog>
+                <PrivacyContent modal />
+              </PrivacyDialog>
             </div>
           </footer>
         </section>
