@@ -1,6 +1,7 @@
 import { CheckCircle2, Circle, Download, FileCheck2, ReceiptText, Send, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { submitStartRequirement } from "./actions";
+import { PdfPreview } from "./pdf-preview";
 
 type RequirementRow = {
   id: string;
@@ -44,6 +45,10 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(value));
 }
 
+function makeDownloadHref(signedUrl: string, fileName: string) {
+  return `${signedUrl}${signedUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(fileName)}`;
+}
+
 export async function ProjectStartClientPanel({ projectId, projectName, startedAt }: { projectId: string; projectName: string; startedAt: string | null }) {
   const supabase = await createClient();
   const [requirementsResult, documentsResult] = await Promise.all([
@@ -60,7 +65,7 @@ export async function ProjectStartClientPanel({ projectId, projectName, startedA
 
   const signedByPath = new Map<string, string>();
   if (documents.length) {
-    const { data } = await supabase.storage.from("project-files").createSignedUrls(documents.map((file) => file.storage_path), 60 * 10, { download: true });
+    const { data } = await supabase.storage.from("project-files").createSignedUrls(documents.map((file) => file.storage_path), 60 * 10);
     data?.forEach((item) => {
       if (item.path && item.signedUrl) signedByPath.set(item.path, item.signedUrl);
     });
@@ -110,21 +115,44 @@ export async function ProjectStartClientPanel({ projectId, projectName, startedA
 
       {(contracts.length || invoices.length) ? (
         <article className="client-commercial-documents" aria-labelledby="commercial-documents-title">
-          <div className="section-heading"><div><div className="eyebrow">Projektunterlagen</div><h2 id="commercial-documents-title">Auftrag & Rechnungen</h2></div><span className="badge">{contracts.length + invoices.length}</span></div>
+          <div className="section-heading"><div><div className="eyebrow">Projektunterlagen</div><h2 id="commercial-documents-title">Angebot, Auftrag & Rechnungen</h2></div><span className="badge">{contracts.length + invoices.length}</span></div>
           <div className="client-document-grid">
             <div className="client-document-column">
-              <div className="client-document-heading"><FileCheck2 size={18} aria-hidden="true" /><strong>Auftrag & Vertrag</strong></div>
+              <div className="client-document-heading"><FileCheck2 size={18} aria-hidden="true" /><strong>Angebot / Auftrag / Vertrag</strong></div>
               {contracts.length ? contracts.map((file) => {
                 const signed = signedByPath.get(file.storage_path);
-                return <div className="client-document-record" key={file.id}><div><strong>{file.document_label || file.file_name}</strong><span>{formatDate(file.created_at)}</span>{file.note ? <p>{file.note}</p> : null}</div>{signed ? <a className="secondary-button button-link" href={signed}><Download size={15} aria-hidden="true" />PDF</a> : null}</div>;
-              }) : <div className="empty-state compact-empty">Noch kein Vertragsdokument hinterlegt.</div>}
+                const title = file.document_label || file.file_name;
+                const downloadHref = signed ? makeDownloadHref(signed, file.file_name) : null;
+                return (
+                  <div className="client-document-record" key={file.id}>
+                    <div><strong>{title}</strong><span>{formatDate(file.created_at)}</span>{file.note ? <p>{file.note}</p> : null}</div>
+                    {signed && downloadHref ? (
+                      <div className="document-record-actions">
+                        <PdfPreview href={signed} downloadHref={downloadHref} title={title} />
+                        <a className="secondary-button button-link" href={downloadHref}><Download size={15} aria-hidden="true" />PDF</a>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }) : <div className="empty-state compact-empty">Noch kein Angebot oder Vertragsdokument hinterlegt.</div>}
             </div>
             <div className="client-document-column">
               <div className="client-document-heading"><ReceiptText size={18} aria-hidden="true" /><strong>Rechnungen</strong></div>
               {invoices.length ? invoices.map((file) => {
                 const signed = signedByPath.get(file.storage_path);
+                const title = file.document_label || file.file_name;
+                const downloadHref = signed ? makeDownloadHref(signed, file.file_name) : null;
                 const isPaid = file.invoice_payment_status === "paid";
-                return <div className="client-document-record invoice-record" key={file.id}><div><strong>{file.document_label || file.file_name}</strong><span>{[file.invoice_number, formatMoney(file.invoice_amount_net), file.invoice_due_at ? `fällig ${formatDate(file.invoice_due_at)}` : null].filter(Boolean).join(" · ")}</span>{file.note ? <p>{file.note}</p> : null}</div><div className="document-record-actions"><span className={`invoice-status ${isPaid ? "is-paid" : "is-open"}`}>{isPaid ? "Bezahlt" : "Zahlung ausstehend"}</span>{signed ? <a className="secondary-button button-link" href={signed}><Download size={15} aria-hidden="true" />PDF</a> : null}</div></div>;
+                return (
+                  <div className="client-document-record invoice-record" key={file.id}>
+                    <div><strong>{title}</strong><span>{[file.invoice_number, formatMoney(file.invoice_amount_net), file.invoice_due_at ? `fällig ${formatDate(file.invoice_due_at)}` : null].filter(Boolean).join(" · ")}</span>{file.note ? <p>{file.note}</p> : null}</div>
+                    <div className="document-record-actions">
+                      <span className={`invoice-status ${isPaid ? "is-paid" : "is-open"}`}>{isPaid ? "Bezahlt" : "Zahlung ausstehend"}</span>
+                      {signed && downloadHref ? <PdfPreview href={signed} downloadHref={downloadHref} title={title} /> : null}
+                      {downloadHref ? <a className="secondary-button button-link" href={downloadHref}><Download size={15} aria-hidden="true" />PDF</a> : null}
+                    </div>
+                  </div>
+                );
               }) : <div className="empty-state compact-empty">Noch keine Rechnung hinterlegt.</div>}
             </div>
           </div>
