@@ -67,7 +67,7 @@ export function ClientAccountActions({
       <form action={sendClientAccessLink}>
         <input type="hidden" name="clientId" value={clientId} />
         <button className="secondary-button" type="submit">
-          <KeyRound size={16} aria-hidden="true" /> Zugangslink senden
+          <KeyRound size={16} aria-hidden="true" /> Einladung / Zugang senden
         </button>
       </form>
 
