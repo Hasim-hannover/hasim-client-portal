@@ -1,38 +1,14 @@
-import {
-  Bell,
-  CheckCircle2,
-  Clock3,
-  FileArchive,
-  FileText,
-  Image,
-  LayoutDashboard,
-  LogOut,
-  Sparkles,
-  Video,
-} from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  completeInfoAction,
-  logout,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "./actions";
+import { completeInfoAction, logout } from "./actions";
 import { ApprovalCard, type ApprovalCardAction } from "./approval-card";
 import { MessagePanel } from "./message-panel";
 import { ProjectStartClientPanel } from "./project-start-client-panel";
 import { UploadPanel } from "./upload-panel";
+import styles from "./portal.module.css";
 
 export const dynamic = "force-dynamic";
 
-const areas = [
-  { key: "image", title: "Bilder & Grafiken", icon: Image },
-  { key: "document", title: "Dokumente & PDF", icon: FileText },
-  { key: "video", title: "Videos", icon: Video },
-  { key: "other", title: "Sonstiges", icon: FileArchive },
-];
-
-const categoryLabels: Record<string, string> = Object.fromEntries(areas.map((area) => [area.key, area.title]));
 const phaseLabels: Record<string, string> = {
   onboarding: "Kick-off & Bestandsaufnahme",
   content: "Design & Inhalte",
@@ -42,33 +18,27 @@ const phaseLabels: Record<string, string> = {
   launch: "Livegang & Übergabe",
   completed: "Abgeschlossen",
 };
+
 const phaseOrder = ["onboarding", "content", "concept", "development", "review", "launch", "completed"];
-const actionTypeLabels: Record<string, string> = { upload: "Upload", approval: "Freigabe", info: "Bestätigung" };
-const actionStatusLabels: Record<string, string> = {
-  open: "Offen",
-  submitted: "Eingereicht",
-  approved: "Freigegeben",
-  changes_requested: "Änderungen gewünscht",
-  done: "Erledigt",
+const actionTypeLabels: Record<string, string> = {
+  upload: "Bereitstellen",
+  approval: "Entscheiden",
+  info: "Bestätigen",
 };
 
-type ActionState = { action_type: string; status: string };
-
-function needsClientAction(action: ActionState) {
+function needsClientAction(action: { action_type: string; status: string }) {
   if (action.action_type === "upload") return ["open", "changes_requested"].includes(action.status);
   if (action.action_type === "approval" || action.action_type === "info") return action.status === "open";
   return action.status === "open";
 }
 
-function waitsForOwner(action: ActionState) {
+function waitsForOwner(action: { action_type: string; status: string }) {
   if (action.status === "submitted") return true;
   return action.action_type === "approval" && action.status === "changes_requested";
 }
 
-function formatBytes(bytes: number | null) {
-  if (!bytes) return "–";
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function firstSearchValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }
 
 function formatDate(value: string) {
@@ -80,8 +50,10 @@ function formatShortDate(value: string | null) {
   return new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(value));
 }
 
-function firstSearchValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+function formatBytes(bytes: number | null) {
+  if (!bytes) return "–";
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default async function PortalPage({
@@ -95,53 +67,52 @@ export default async function PortalPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileResult, projectsResult, actionsResult, filesResult, messagesResult, eventsResult, notificationsResult] = await Promise.all([
+  const [profileResult, projectsResult, actionsResult, filesResult, eventsResult] = await Promise.all([
     supabase.from("profiles").select("full_name, email").eq("id", user.id).single(),
     supabase.from("projects").select("id, name, status, phase, phase_note, started_at, updated_at").order("created_at", { ascending: false }),
     supabase.from("project_actions").select("id, project_id, title, description, action_type, status, due_at, response_note, phase_key, version_label, demo_url, preview_image_url, blocks_progress, demo_auth_type, created_at, updated_at").order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("project_files").select("id, project_id, action_id, upload_id, category, note, file_name, storage_path, mime_type, size_bytes, created_at").order("created_at", { ascending: false }).limit(80),
-    supabase.from("project_messages").select("id, project_id, sender_id, body, created_at").order("created_at", { ascending: false }).limit(20),
-    supabase.from("project_events").select("id, project_id, actor_id, event_type, title, body, created_at").order("created_at", { ascending: false }).limit(24),
-    supabase.from("portal_notifications").select("id, project_id, title, body, read_at, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(12),
+    supabase.from("project_events").select("id, project_id, actor_id, event_type, title, body, created_at").order("created_at", { ascending: false }).limit(40),
   ]);
 
-  const projectList = projectsResult.data ?? [];
-  const projectNames = new Map(projectList.map((project) => [project.id, project.name]));
-  const actionList = (actionsResult.data ?? []).map((action) => ({ ...action, projectName: projectNames.get(action.project_id) ?? "Projekt" }));
+  const profile = profileResult.data;
+  const projects = projectsResult.data ?? [];
+  const activeProject = projects[0] ?? null;
+  const projectNames = new Map(projects.map((project) => [project.id, project.name]));
+  const actionList = (actionsResult.data ?? []).map((action) => ({
+    ...action,
+    projectName: projectNames.get(action.project_id) ?? "Projekt",
+  }));
   const clientActions = actionList.filter(needsClientAction);
   const waitingActions = actionList.filter(waitsForOwner);
-  const approvalHistory = actionList.filter((action) => action.action_type === "approval" && action.status !== "open").slice().reverse();
-  const hasApprovals = actionList.some((action) => action.action_type === "approval");
-  const activeProject = projectList[0] ?? null;
   const primaryAction = clientActions[0] ?? null;
   const waitingAction = waitingActions[0] ?? null;
-  const profile = profileResult.data;
-  const notifications = notificationsResult.data ?? [];
-  const unreadCount = notifications.filter((notification) => !notification.read_at).length;
-  const events = (eventsResult.data ?? []).map((event) => ({ ...event, projectName: projectNames.get(event.project_id) ?? "Projekt" }));
+  const currentPhaseIndex = activeProject ? Math.max(0, phaseOrder.indexOf(activeProject.phase)) : 0;
 
   const rawFiles = filesResult.data ?? [];
   const signedByPath = new Map<string, string>();
   if (rawFiles.length) {
-    const { data: signedUrls } = await supabase.storage.from("project-files").createSignedUrls(rawFiles.map((file) => file.storage_path), 60 * 10);
+    const { data: signedUrls } = await supabase.storage
+      .from("project-files")
+      .createSignedUrls(rawFiles.map((file) => file.storage_path), 60 * 10);
+
     signedUrls?.forEach((item) => {
       if (item.signedUrl && item.path) signedByPath.set(item.path, item.signedUrl);
     });
   }
 
-  const fileList = rawFiles.map((file) => {
-    const signedUrl = signedByPath.get(file.storage_path) ?? null;
-    const downloadUrl = signedUrl ? `${signedUrl}${signedUrl.includes("?") ? "&" : "?"}download=${encodeURIComponent(file.file_name)}` : null;
-    return { ...file, signedUrl: downloadUrl, projectName: projectNames.get(file.project_id) ?? "Projekt" };
-  });
-
-  const messages = (messagesResult.data ?? []).map((message) => ({
-    ...message,
-    projectName: projectNames.get(message.project_id) ?? "Projekt",
-    senderLabel: message.sender_id === user.id ? "Du" : "Hasim Üner",
+  const files = rawFiles.map((file) => ({
+    ...file,
+    projectName: projectNames.get(file.project_id) ?? "Projekt",
+    signedUrl: signedByPath.get(file.storage_path) ?? null,
   }));
 
-  const compactProjects = projectList.map(({ id, name }) => ({ id, name }));
+  const events = (eventsResult.data ?? []).map((event) => ({
+    ...event,
+    projectName: projectNames.get(event.project_id) ?? "Projekt",
+  }));
+
+  const compactProjects = projects.map(({ id, name }) => ({ id, name }));
   const compactActions = actionList.map((action) => ({
     id: action.id,
     projectId: action.project_id,
@@ -149,160 +120,194 @@ export default async function PortalPage({
     type: action.action_type as "upload" | "approval" | "info",
     status: action.status,
   }));
-  const loadError = projectsResult.error ?? actionsResult.error ?? filesResult.error ?? messagesResult.error ?? eventsResult.error;
-  const currentPhaseIndex = activeProject ? Math.max(0, phaseOrder.indexOf(activeProject.phase)) : 0;
+
+  const firstName = profile?.full_name?.split(" ")[0] || "";
+  const nextStateTitle = primaryAction ? "Du bist am Zug." : waitingAction ? "Wir sind am Zug." : "Alles auf Kurs.";
+  const nextStateCopy = primaryAction
+    ? primaryAction.description || "Diese Aufgabe ist der nächste sinnvolle Schritt im Projekt."
+    : waitingAction
+      ? `„${waitingAction.title}“ ist eingegangen. Wir kümmern uns um den nächsten Schritt.`
+      : "Im Moment ist nichts von dir erforderlich.";
 
   return (
-    <div className="portal-shell portal-v2-shell">
-      <a className="skip-link" href="#main-content">Zum Inhalt springen</a>
-      <aside className="sidebar" aria-label="Kundenportal Navigation">
-        <div className="brand">WERK</div>
-        <nav className="nav" aria-label="Portal Navigation">
-          <a className="nav-item active" href="#dashboard" aria-current="location">Übersicht</a>
-          {activeProject ? <a className="nav-item" href="#projektstart">Projektstart</a> : null}
-          <a className="nav-item" href="#aktionen">Deine Aufgaben</a>
-          {hasApprovals ? <a className="nav-item" href="#freigaben">Freigaben</a> : null}
-          <a className="nav-item" href="#aktivitaet">Aktivität</a>
-          <a className="nav-item" href="#dateien">Dateien</a>
-          <a className="nav-item" href="#nachrichten">Nachrichten</a>
+    <div className={styles.shell}>
+      <aside className={styles.sidebar} aria-label="WERK Navigation">
+        <div className={styles.brand}>
+          <strong>WERK</strong>
+          <span>Klientenportal</span>
+        </div>
+
+        <nav className={styles.nav} aria-label="Projektbereiche">
+          <a href="#projekt">Projekt</a>
+          <a href="#aufgaben">Aufgaben</a>
+          <a href="#dateien">Dateien</a>
+          <a href="#verlauf">Verlauf</a>
         </nav>
-        <form action={logout} className="logout-form">
-          <button type="submit" className="logout-button"><LogOut size={16} aria-hidden="true" />Abmelden</button>
-        </form>
+
+        <div className={styles.account}>
+          <span>{profile?.email || user.email}</span>
+          <form action={logout}>
+            <button className={styles.logout} type="submit">Abmelden</button>
+          </form>
+        </div>
       </aside>
 
-      <main className="main portal-v2-main" id="main-content">
-        <header className="workspace-topbar" id="dashboard">
+      <main className={styles.main} id="main-content">
+        <header className={styles.topline}>
           <div>
-            <div className="eyebrow">WERK · Projektbereich</div>
-            <h1>{profile?.full_name ? `Hallo ${profile.full_name.split(" ")[0]}.` : "Willkommen im Projekt."}</h1>
-            <p className="lead">Hier siehst du nur das, was für den nächsten Projektschritt relevant ist.</p>
+            <p className={styles.kicker}>WERK / Projektbereich</p>
+            <h1>{firstName ? `Hallo ${firstName}.` : "Willkommen."}</h1>
           </div>
-          <div className="workspace-topbar-actions">
-            <div className="notification-indicator" aria-label={`${unreadCount} ungelesene Benachrichtigungen`}><Bell size={18} aria-hidden="true" /><span>{unreadCount}</span></div>
-            <span className="signed-in-as">{profile?.email || user.email}</span>
+          <div className={styles.projectMeta}>
+            <span>Aktives Projekt</span>
+            <strong>{activeProject?.name || "Noch kein Projekt"}</strong>
           </div>
         </header>
 
-        {loadError ? <div className="portal-warning" role="alert">Ein Teil der Projektdaten konnte nicht geladen werden. Bitte Seite neu laden.</div> : null}
+        <section id="projekt" aria-labelledby="project-state-title">
+          <div className={styles.focusGrid}>
+            <article className={styles.projectState}>
+              <span className={styles.phaseLabel}>{activeProject ? phaseLabels[activeProject.phase] ?? activeProject.phase : "Projekt wird vorbereitet"}</span>
+              <h2 id="project-state-title">{activeProject?.name || "Dein Projektraum wird vorbereitet."}</h2>
+              <p>{activeProject?.phase_note || "Hier steht immer der aktuelle Projektzustand – klar, knapp und ohne unnötige Ablenkung."}</p>
 
-        <section className="client-focus-grid" aria-label="Aktueller Projektfokus">
-          <article className="client-focus-card primary-focus-card">
-            <div className="focus-card-topline"><span className="status-dot" aria-hidden="true" /><span>{activeProject ? activeProject.started_at ? phaseLabels[activeProject.phase] ?? activeProject.phase : "Projektstart" : "Noch kein Projekt"}</span></div>
-            <h2>{activeProject?.name || "Dein Projekt wird vorbereitet"}</h2>
-            <p>{activeProject ? activeProject.started_at ? activeProject.phase_note || "Der aktuelle Projektstand wird hier fortlaufend aktualisiert." : "Vor Phase 1 werden Vertrag, erste Teilzahlung und die benötigten technischen Zugänge geklärt." : "Sobald es ein Projektupdate gibt, erscheint hier der aktuelle Stand."}</p>
-            {activeProject?.started_at ? (
-              <ol className="phase-track premium-phase-track" aria-label={`Projektfortschritt: ${phaseLabels[activeProject.phase] ?? activeProject.phase}`}>
-                {phaseOrder.map((phase, index) => <li key={phase} className={index <= currentPhaseIndex ? "phase-step active" : "phase-step"} aria-current={index === currentPhaseIndex ? "step" : undefined}><span className="sr-only">{phaseLabels[phase]}</span></li>)}
-              </ol>
-            ) : null}
-          </article>
+              {activeProject?.started_at ? (
+                <ol className={styles.phaseTrack} aria-label={`Projektfortschritt: ${phaseLabels[activeProject.phase] ?? activeProject.phase}`}>
+                  {phaseOrder.map((phase, index) => (
+                    <li key={phase} data-active={index <= currentPhaseIndex ? "true" : "false"} aria-current={index === currentPhaseIndex ? "step" : undefined}>
+                      <span className="sr-only">{phaseLabels[phase]}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+            </article>
 
-          <article className="client-focus-card next-action-card">
-            <div className="eyebrow">{primaryAction ? "Nächster Schritt" : waitingAction ? "Bei uns in Bearbeitung" : "Aktueller Stand"}</div>
-            {primaryAction ? <>
-              <div className="action-type-row"><span className="action-type-pill">{actionTypeLabels[primaryAction.action_type]}</span>{primaryAction.due_at ? <span className="action-due"><Clock3 size={14} aria-hidden="true" />bis {formatShortDate(primaryAction.due_at)}</span> : null}</div>
-              <h2>{primaryAction.title}</h2>
-              <p>{primaryAction.description || "Diese Aufgabe ist der nächste sinnvolle Schritt im Projekt."}</p>
-              <a className="primary-button button-link" href={`#action-${primaryAction.id}`}>Jetzt erledigen</a>
-            </> : waitingAction ? (
-              <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>Dein Teil ist erledigt.</strong><span>{waitingAction.action_type === "approval" && waitingAction.status === "changes_requested" ? "Dein Änderungswunsch ist angekommen. Wir kümmern uns darum und melden uns mit dem nächsten Stand." : `„${waitingAction.title}“ wurde eingereicht. Wir prüfen das und melden uns, sobald es weitergeht.`}</span></div></div>
-            ) : <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>Du bist auf dem aktuellen Stand.</strong><span>Im Moment ist nichts von dir erforderlich.</span></div></div>}
-          </article>
-        </section>
+            <article className={styles.nextCard}>
+              <div>
+                <p className={styles.kicker}>{primaryAction ? "Nächster Schritt" : waitingAction ? "Aktueller Stand" : "Projektstatus"}</p>
+                <h3>{nextStateTitle}</h3>
+                <p>{nextStateCopy}</p>
+                {primaryAction ? (
+                  <div className={styles.nextMeta}>
+                    <span>{actionTypeLabels[primaryAction.action_type] ?? primaryAction.action_type}</span>
+                    <span>{primaryAction.title}</span>
+                    {primaryAction.due_at ? <span>bis {formatShortDate(primaryAction.due_at)}</span> : null}
+                  </div>
+                ) : null}
+              </div>
 
-        {activeProject ? <ProjectStartClientPanel projectId={activeProject.id} projectName={activeProject.name} startedAt={activeProject.started_at} /> : null}
-
-        <section className="client-actions-section" id="aktionen" aria-labelledby="actions-title">
-          <div className="section-heading">
-            <div><div className="eyebrow">Deine nächsten Schritte</div><h2 id="actions-title">Was jetzt von dir gebraucht wird</h2></div>
-            <span className="badge">{clientActions.length} offen</span>
+              {primaryAction ? <a className={styles.nextActionLink} href={`#action-${primaryAction.id}`}>Jetzt ansehen</a> : (
+                <div className={styles.calmState}>
+                  <strong>{waitingAction ? "Dein Teil ist erledigt." : "Keine offene Aktion."}</strong>
+                  <span>{waitingAction ? "Sobald es weitergeht, erscheint der nächste Schritt hier." : "Du musst aktuell nichts tun."}</span>
+                </div>
+              )}
+            </article>
           </div>
 
-          {clientActions.length === 0 ? (
-            <div className="request-empty-success"><CheckCircle2 size={20} aria-hidden="true" /><div><strong>{waitingActions.length ? "Von dir ist gerade nichts offen." : "Alles erledigt."}</strong><span>{waitingActions.length ? "Wir sind am Zug. Sobald wir wieder etwas von dir brauchen, erscheint es hier." : "Du musst aktuell nichts tun."}</span></div></div>
-          ) : (
-            <div className="client-action-list">
-              {clientActions.map((action) => action.action_type === "approval" ? (
-                <ApprovalCard key={action.id} action={action as ApprovalCardAction} />
-              ) : (
-                <article className={`client-action-card action-${action.action_type}`} id={`action-${action.id}`} key={action.id}>
-                  <div className="client-action-card-head">
-                    <div>
-                      <div className="action-type-row"><span className="action-type-pill">{actionTypeLabels[action.action_type]}</span><span className={`action-status action-status-${action.status}`}>{actionStatusLabels[action.status] ?? action.status}</span></div>
-                      <h3>{action.title}</h3>
-                      <p className="request-project">{action.projectName}{action.due_at ? ` · bis ${formatShortDate(action.due_at)}` : ""}</p>
-                    </div>
-                    {action.action_type === "upload" ? <a className="primary-button button-link" href={`?action=${encodeURIComponent(action.id)}#upload`}>Dateien hochladen</a> : null}
-                  </div>
-                  {action.description ? <p className="request-description">{action.description}</p> : null}
+          {activeProject ? (
+            <div className={styles.startWrap}>
+              <ProjectStartClientPanel projectId={activeProject.id} projectName={activeProject.name} startedAt={activeProject.started_at} />
+            </div>
+          ) : null}
+        </section>
 
-                  {action.action_type === "info" ? (
-                    <form action={completeInfoAction} className="approval-form compact-action-form">
-                      <input type="hidden" name="actionId" value={action.id} />
-                      <label htmlFor={`info-note-${action.id}`}>Antwort <span className="optional-label">optional</span></label>
-                      <textarea id={`info-note-${action.id}`} name="note" rows={2} maxLength={2000} placeholder="Optionaler Hinweis" />
-                      <button className="primary-button" type="submit">Als erledigt bestätigen</button>
-                    </form>
-                  ) : null}
+        <section className={styles.section} id="aufgaben" aria-labelledby="tasks-title">
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.kicker}>Handlungen & Entscheidungen</p>
+              <h2 id="tasks-title">Aufgaben</h2>
+            </div>
+            <p>Alles, was von dir benötigt wird: bereitstellen, bestätigen oder freigeben.</p>
+          </div>
+
+          {clientActions.length === 0 ? <div className={styles.empty}>Aktuell ist nichts von dir offen.</div> : (
+            <div className={styles.taskList}>
+              {clientActions.map((action) => action.action_type === "approval" ? (
+                <div className={styles.approvalWrap} key={action.id}>
+                  <ApprovalCard action={action as ApprovalCardAction} />
+                </div>
+              ) : (
+                <article className={styles.simpleTask} id={`action-${action.id}`} key={action.id}>
+                  <div>
+                    <span className={styles.taskType}>{actionTypeLabels[action.action_type] ?? action.action_type}</span>
+                    <h3>{action.title}</h3>
+                    {action.description ? <p>{action.description}</p> : null}
+                    {action.due_at ? <p>Rückmeldung bis {formatShortDate(action.due_at)}</p> : null}
+
+                    {action.action_type === "info" ? (
+                      <form action={completeInfoAction} className="approval-form compact-action-form">
+                        <input type="hidden" name="actionId" value={action.id} />
+                        <label htmlFor={`info-note-${action.id}`}>Antwort <span className="optional-label">optional</span></label>
+                        <textarea id={`info-note-${action.id}`} name="note" rows={3} maxLength={2000} placeholder="Kurze Rückmeldung …" />
+                        <button className="primary-button" type="submit">Bestätigen</button>
+                      </form>
+                    ) : null}
+                  </div>
+
+                  {action.action_type === "upload" ? <a className={styles.taskLink} href={`?action=${encodeURIComponent(action.id)}#upload`}>Dateien bereitstellen →</a> : null}
                 </article>
               ))}
             </div>
           )}
         </section>
 
-        {hasApprovals ? (
-          <section className="approval-client-history" id="freigaben" aria-labelledby="approval-history-title">
-            <div className="section-heading"><div><div className="eyebrow">Review-Historie</div><h2 id="approval-history-title">Freigaben & Versionen</h2></div><span className="badge">{approvalHistory.length} entschieden</span></div>
-            {approvalHistory.length === 0 ? <div className="empty-state compact-empty">Die erste Freigabe ist noch offen.</div> : (
-              <div className="approval-client-history-list">{approvalHistory.map((approval) => (
-                <div className={`approval-client-history-row is-${approval.status}`} key={approval.id}>
-                  <span className="approval-history-mark">{approval.status === "approved" ? "✓" : "↺"}</span>
-                  <div><strong>{approval.title}{approval.version_label ? ` · ${approval.version_label}` : ""}</strong><span>{approval.projectName} · {actionStatusLabels[approval.status] ?? approval.status} · {formatDate(approval.updated_at)}</span>{approval.response_note ? <p>{approval.response_note}</p> : null}</div>
+        <section className={styles.section} id="dateien" aria-labelledby="files-title">
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.kicker}>Projektmaterial</p>
+              <h2 id="files-title">Dateien</h2>
+            </div>
+            <p>Projektdateien bleiben privat und werden nur über zeitlich begrenzte Links geöffnet.</p>
+          </div>
+
+          <div className={styles.uploadWrap}>
+            <UploadPanel projects={compactProjects} actions={compactActions} initialActionId={requestedActionId} />
+          </div>
+
+          {files.length === 0 ? <div className={styles.empty}>Noch keine Dateien vorhanden.</div> : (
+            <div className={styles.fileList}>
+              {files.slice(0, 30).map((file) => (
+                <div className={styles.fileRow} key={file.id}>
+                  <div>
+                    <strong>{file.file_name}</strong>
+                    <span>{file.projectName} · {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}</span>
+                  </div>
+                  {file.signedUrl ? <a href={file.signedUrl} target="_blank" rel="noreferrer">Öffnen ↗</a> : null}
                 </div>
-              ))}</div>
-            )}
-          </section>
-        ) : null}
-
-        <UploadPanel projects={compactProjects} actions={compactActions} initialActionId={requestedActionId} />
-
-        <section className="activity-notification-grid" id="aktivitaet">
-          <article className="workspace-panel">
-            <div className="section-heading compact-heading"><div><div className="eyebrow">Neu seit dem letzten Besuch</div><h2>Aktivität</h2></div><Sparkles size={18} aria-hidden="true" /></div>
-            {events.length === 0 ? <div className="empty-state compact-empty">Noch keine Aktivität vorhanden.</div> : (
-              <div className="timeline-list">{events.slice(0, 10).map((event) => <div className="timeline-item" key={event.id}><span className="timeline-dot" aria-hidden="true" /><div><strong>{event.title}</strong><span>{event.projectName} · {formatDate(event.created_at)}</span>{event.body ? <p>{event.body}</p> : null}</div></div>)}</div>
-            )}
-          </article>
-
-          <article className="workspace-panel">
-            <div className="section-heading compact-heading"><div><div className="eyebrow">Benachrichtigungen</div><h2>Updates</h2></div><span className="badge">{unreadCount} neu</span></div>
-            {notifications.length === 0 ? <div className="empty-state compact-empty">Keine Benachrichtigungen.</div> : <div className="notification-list">{notifications.slice(0, 8).map((notification) => (
-              <div className={notification.read_at ? "notification-row" : "notification-row is-unread"} key={notification.id}>
-                <div><strong>{notification.title}</strong><span>{formatDate(notification.created_at)}</span>{notification.body ? <p>{notification.body}</p> : null}</div>
-                {!notification.read_at ? <form action={markNotificationRead}><input type="hidden" name="notificationId" value={notification.id} /><button className="text-button" type="submit">Gelesen</button></form> : null}
-              </div>
-            ))}</div>}
-            {unreadCount ? <form action={markAllNotificationsRead} className="notification-read-all"><button className="secondary-button" type="submit">Alle als gelesen markieren</button></form> : null}
-          </article>
-        </section>
-
-        <section className="files-section" id="dateien" aria-labelledby="files-title">
-          <div className="section-heading"><div><div className="eyebrow">Projektdateien</div><h2 id="files-title">Dateien</h2></div><span className="badge">{fileList.length}</span></div>
-          <div className="file-category-strip" aria-label="Dateikategorien">{areas.map(({ key, title, icon: Icon }) => <span key={key}><Icon size={15} aria-hidden="true" />{title}</span>)}</div>
-          {fileList.length === 0 ? <div className="empty-state">Noch keine Dateien vorhanden.</div> : (
-            <div className="file-manager-list">{fileList.slice(0, 30).map((file) => <div className="file-manager-row" key={file.id}><div className="file-manager-icon"><FileText size={18} aria-hidden="true" /></div><div className="file-manager-main"><strong>{file.file_name}</strong><span>{file.projectName} · {categoryLabels[file.category] ?? "Sonstiges"} · {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}</span>{file.note ? <p>{file.note}</p> : null}</div>{file.signedUrl ? <a className="secondary-button button-link" href={file.signedUrl}>Download</a> : null}</div>)}</div>
+              ))}
+            </div>
           )}
         </section>
 
-        <MessagePanel projects={compactProjects} />
+        <section className={styles.section} id="verlauf" aria-labelledby="history-title">
+          <div className={styles.sectionHead}>
+            <div>
+              <p className={styles.kicker}>Dokumentierte Projektakte</p>
+              <h2 id="history-title">Verlauf</h2>
+            </div>
+            <p>Nachrichten, Uploads, Freigaben und Statusänderungen bleiben im Projektkontext nachvollziehbar.</p>
+          </div>
 
-        <section className="messages-history" aria-labelledby="messages-title">
-          <div className="section-heading"><div><div className="eyebrow">Kommunikation</div><h2 id="messages-title">Letzte Nachrichten</h2></div><span className="badge">{messages.length}</span></div>
-          {messages.length === 0 ? <div className="empty-state">Noch keine Projektnachrichten vorhanden.</div> : <div className="message-list">{messages.map((message) => <article className="message-item" key={message.id}><div className="message-meta"><strong>{message.senderLabel}</strong><span>{message.projectName} · {formatDate(message.created_at)}</span></div><p>{message.body}</p></article>)}</div>}
+          <div className={styles.messageWrap}>
+            <MessagePanel projects={compactProjects} />
+          </div>
+
+          {events.length === 0 ? <div className={styles.empty}>Noch keine Aktivität vorhanden.</div> : (
+            <div className={styles.timeline}>
+              {events.map((event) => (
+                <div className={styles.timelineItem} key={event.id}>
+                  <time dateTime={event.created_at}>{formatDate(event.created_at)}</time>
+                  <div>
+                    <strong>{event.title}</strong>
+                    <span>{event.projectName}</span>
+                    {event.body ? <p>{event.body}</p> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
-
-        <section className="status" aria-label="Sicherheitshinweis"><div><strong>Geschützter Projektraum</strong><span>Dateien liegen privat und Downloads werden nur zeitlich begrenzt freigegeben.</span></div><div className="badge"><LayoutDashboard size={14} aria-hidden="true" />WERK</div></section>
       </main>
     </div>
   );
