@@ -3,8 +3,6 @@ import {
   ArrowRight,
   CheckCircle2,
   FileText,
-  FolderKanban,
-  Headphones,
   LockKeyhole,
   Mail,
   MessageSquare,
@@ -15,23 +13,18 @@ import styles from "./login.module.css";
 
 const benefits = [
   {
-    title: "Sichere Kommunikation",
-    text: "Projektbezogene Abstimmungen zentral statt verteilt über verschiedene Kanäle.",
+    title: "Kommunikation",
+    text: "Direkt im Projekt",
     Icon: MessageSquare,
   },
   {
-    title: "Dokumente & Dateien",
-    text: "Unterlagen bereitstellen und projektbezogen austauschen.",
+    title: "Unterlagen",
+    text: "Zentral verfügbar",
     Icon: FileText,
   },
   {
-    title: "Projektphasen im Blick",
-    text: "Fortschritt, nächste Schritte und offene Punkte jederzeit nachvollziehen.",
-    Icon: FolderKanban,
-  },
-  {
-    title: "Freigaben dokumentiert",
-    text: "Änderungen, Entscheidungen und Freigaben bleiben dem Projekt zugeordnet.",
+    title: "Fortschritt",
+    text: "Jederzeit im Blick",
     Icon: CheckCircle2,
   },
 ];
@@ -47,12 +40,10 @@ export default async function LoginPage({
 
   return (
     <main className={styles.shell} id="main-content">
-      <div className={styles.paperGlow} aria-hidden="true" />
-      <div className={styles.architecture} aria-hidden="true">
-        <div className={styles.architectureLines} />
-        <span className={styles.architectureLabel}>Projekte · Menschen · Fortschritt</span>
+      <div className={styles.ambient} aria-hidden="true" />
+      <div className={styles.editorialRail} aria-hidden="true">
+        <span>Ideen · Struktur · Fortschritt</span>
       </div>
-      <p className={styles.topMotto} aria-hidden="true">Projekte schaffen Klarheit.</p>
 
       <div className={styles.layout}>
         <section className={styles.brandPanel} aria-labelledby="werk-intro-title">
@@ -63,10 +54,12 @@ export default async function LoginPage({
 
           <div className={styles.brandCopy}>
             <p className={styles.eyebrow}>Effizient. Transparent. Gemeinsam.</p>
-            <h1 id="werk-intro-title">Projekte. Klar organisiert.</h1>
+            <h1 id="werk-intro-title">
+              Projekte.
+              <span>Klar organisiert.</span>
+            </h1>
             <p className={styles.intro}>
-              WERK ist mein eigenentwickeltes Kundenportal für die Zusammenarbeit in laufenden Projekten.
-              Dokumente, Kommunikation, Freigaben und Projektfortschritt bleiben an einem zentralen Ort nachvollziehbar.
+              Alle Projektdaten, Abstimmungen und Freigaben an einem zentralen Ort.
             </p>
           </div>
 
@@ -76,35 +69,27 @@ export default async function LoginPage({
                 <div className={styles.featureIcon} aria-hidden="true">
                   <Icon />
                 </div>
-                <div className={styles.featureCopy}>
-                  <h2>{title}</h2>
-                  <p>{text}</p>
-                </div>
-                <ArrowRight className={styles.featureArrow} aria-hidden="true" />
+                <h2>{title}</h2>
+                <p>{text}</p>
               </article>
             ))}
           </div>
 
           <div className={styles.signature}>
-            <span className={styles.signatureLine} aria-hidden="true" />
+            <span aria-hidden="true" />
             <p>
               <strong>Entwickelt von Hasim Üner</strong>
-              <span>Für die strukturierte Zusammenarbeit mit meinen Kund:innen.</span>
+              <small>Für eine strukturierte Zusammenarbeit.</small>
             </p>
           </div>
         </section>
 
         <section className={styles.loginCard} aria-labelledby="login-title">
-          <div className={styles.cardGlow} aria-hidden="true" />
-
-          <div className={styles.cardMeta}>
-            <span>WERK / PROJEKTZUGANG</span>
-            <span className={styles.securityBadge}><ShieldCheck /> Geschützter Bereich</span>
-          </div>
+          <div className={styles.cardMeta}>WERK / LOGIN</div>
 
           <div className={styles.cardHeading}>
-            <h2 id="login-title">Projektzugang</h2>
-            <p className={styles.cardLead}>Für bestehende Kund:innen.</p>
+            <h2 id="login-title">Willkommen zurück.</h2>
+            <p>Melde dich an, um auf deine Projekte zuzugreifen.</p>
           </div>
 
           {message ? <div className={styles.success} role="status">{message}</div> : null}
@@ -154,14 +139,15 @@ export default async function LoginPage({
           </form>
 
           <footer className={styles.cardFooter}>
-            <p className={styles.support}>
-              <Headphones aria-hidden="true" />
-              <span>Probleme mit deinem Zugang? <a href="mailto:hallo@hasimuener.de">hallo@hasimuener.de</a></span>
+            <p className={styles.securityLine}>
+              <ShieldCheck aria-hidden="true" />
+              <span>Sicherer Zugang.</span>
             </p>
-            <p className={styles.privacy}>
-              Für die Anmeldung werden nur technisch notwendige Sitzungs- und Sicherheitsdaten verwendet.{" "}
-              <Link href="/datenschutz">Datenschutzhinweise</Link>
-            </p>
+            <div className={styles.footerLinks}>
+              <a href="mailto:hallo@hasimuener.de">Hilfe</a>
+              <span aria-hidden="true">·</span>
+              <Link href="/datenschutz">Datenschutz</Link>
+            </div>
           </footer>
         </section>
       </div>
