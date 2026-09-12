@@ -14,10 +14,10 @@
   overflow: hidden;
   display: grid;
   place-items: center;
-  padding: clamp(58px, 7vw, 108px);
+  padding: clamp(68px, 8.4vw, 128px);
   color: var(--ink);
   background:
-    radial-gradient(460px 320px at 83% 13%, rgba(181, 107, 63, 0.045), transparent 72%),
+    radial-gradient(520px 360px at 81% 14%, rgba(181, 107, 63, 0.04), transparent 74%),
     linear-gradient(180deg, #fdfcf9 0%, var(--bg) 100%);
 }
 
@@ -31,24 +31,24 @@
 .ambient::before {
   content: "";
   position: absolute;
-  top: 10%;
-  bottom: 10%;
-  left: 58.8%;
+  top: 11%;
+  bottom: 11%;
+  left: 57.6%;
   width: 1px;
-  background: linear-gradient(to bottom, transparent, rgba(18,17,15,.05) 18%, rgba(18,17,15,.05) 82%, transparent);
+  background: linear-gradient(to bottom, transparent, rgba(18,17,15,.045) 18%, rgba(18,17,15,.045) 82%, transparent);
 }
 
 .layout {
-  width: min(100%, 1180px);
+  width: min(100%, 1080px);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(390px, 0.78fr);
-  gap: clamp(86px, 10vw, 150px);
+  grid-template-columns: minmax(0, 1fr) minmax(430px, .88fr);
+  gap: clamp(74px, 7vw, 104px);
   align-items: center;
 }
 
 .brandPanel {
   min-width: 0;
-  max-width: 510px;
+  max-width: 470px;
 }
 
 .wordmark {
@@ -56,20 +56,20 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 5px;
-  margin-bottom: clamp(64px, 8vh, 94px);
+  margin-bottom: clamp(66px, 8vh, 96px);
 }
 
 .wordmark::after {
   content: "";
-  width: 72%;
+  width: 68%;
   height: 1px;
-  margin-top: 9px;
-  background: linear-gradient(90deg, var(--accent), rgba(181, 107, 63, 0.06));
+  margin-top: 10px;
+  background: linear-gradient(90deg, var(--accent), rgba(181, 107, 63, 0.05));
 }
 
 .wordmarkMain {
   font-family: Satoshi, Figtree, Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(46px, 4.6vw, 64px);
+  font-size: clamp(46px, 4.35vw, 61px);
   font-weight: 780;
   line-height: .88;
   letter-spacing: .045em;
@@ -84,7 +84,7 @@
 }
 
 .eyebrow {
-  margin: 0 0 19px;
+  margin: 0 0 20px;
   color: var(--accent);
   font-size: 8.5px;
   font-weight: 760;
@@ -94,45 +94,45 @@
 
 .brandPanel h1 {
   margin: 0;
-  max-width: 500px;
+  max-width: 460px;
   font-family: Satoshi, Figtree, Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(50px, 5.2vw, 72px);
+  font-size: clamp(48px, 4.8vw, 66px);
   font-weight: 710;
-  line-height: .94;
-  letter-spacing: -.065em;
+  line-height: .95;
+  letter-spacing: -.063em;
 }
 
 .brandPanel h1 span {
   display: block;
-  margin-top: 5px;
+  margin-top: 6px;
   font-weight: 640;
 }
 
 .intro {
-  max-width: 400px;
-  margin: 22px 0 0;
+  max-width: 370px;
+  margin: 24px 0 0;
   color: var(--soft);
-  font-size: clamp(14px, 1vw, 16px);
-  line-height: 1.65;
+  font-size: clamp(14px, .98vw, 15.5px);
+  line-height: 1.68;
 }
 
 .points {
   display: flex;
   flex-wrap: wrap;
   gap: 10px 0;
-  margin: 38px 0 0;
+  margin: 42px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .points li {
   position: relative;
-  margin-right: 17px;
-  padding-right: 17px;
+  margin-right: 18px;
+  padding-right: 18px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9.8px;
   font-weight: 620;
-  letter-spacing: .04em;
+  letter-spacing: .045em;
 }
 
 .points li:not(:last-child)::after {
@@ -143,32 +143,32 @@
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: rgba(181, 107, 63, 0.38);
+  background: rgba(181, 107, 63, 0.34);
   transform: translateY(-50%);
 }
 
 .signature {
-  margin: clamp(62px, 8vh, 88px) 0 0;
-  color: #8e877f;
-  font-size: 7.6px;
+  margin: clamp(66px, 8.5vh, 94px) 0 0;
+  color: #918980;
+  font-size: 7.4px;
   font-weight: 730;
-  letter-spacing: .22em;
+  letter-spacing: .23em;
   text-transform: uppercase;
 }
 
 .loginCard {
   position: relative;
-  width: min(100%, 446px);
+  width: min(100%, 474px);
   justify-self: end;
-  padding: clamp(34px, 3.7vw, 44px);
-  border: 1px solid rgba(18,17,15,.07);
-  border-radius: 20px;
-  background: rgba(255, 254, 251, .82);
+  padding: clamp(39px, 4vw, 48px);
+  border: 1px solid rgba(18,17,15,.065);
+  border-radius: 22px;
+  background: rgba(255, 254, 251, .85);
   box-shadow:
-    0 26px 58px rgba(42, 34, 28, .055),
-    0 7px 20px rgba(42, 34, 28, .025);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+    0 34px 74px rgba(42, 34, 28, .06),
+    0 8px 22px rgba(42, 34, 28, .025);
+  backdrop-filter: blur(13px);
+  -webkit-backdrop-filter: blur(13px);
 }
 
 .loginCard::before {
@@ -176,16 +176,16 @@
   position: absolute;
   top: 0;
   right: 0;
-  width: 94px;
+  width: 118px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(181,107,63,.38));
+  background: linear-gradient(90deg, transparent, rgba(181,107,63,.34));
 }
 
 .cardMeta {
-  margin-bottom: clamp(38px, 4.8vh, 48px);
+  margin-bottom: clamp(42px, 5vh, 52px);
   text-align: right;
   color: #aaa29a;
-  font-size: 7.5px;
+  font-size: 7.7px;
   font-weight: 760;
   letter-spacing: .3em;
   text-transform: uppercase;
@@ -194,23 +194,23 @@
 .cardHeading h2 {
   margin: 0;
   font-family: Satoshi, Figtree, Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(30px, 2.8vw, 38px);
+  font-size: clamp(33px, 3vw, 41px);
   font-weight: 700;
   line-height: 1;
-  letter-spacing: -.045em;
+  letter-spacing: -.046em;
 }
 
 .cardHeading p {
-  margin: 9px 0 0;
+  margin: 10px 0 0;
   color: var(--soft);
-  font-size: 12.5px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.58;
 }
 
 .success,
 .error {
-  margin-top: 18px;
-  padding: 9px 11px;
+  margin-top: 19px;
+  padding: 10px 12px;
   border-radius: 9px;
   font-size: 11px;
   line-height: 1.45;
@@ -230,32 +230,32 @@
 
 .form {
   display: grid;
-  gap: 15px;
-  margin-top: 28px;
+  gap: 16px;
+  margin-top: 32px;
 }
 
 .field {
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .field label {
   color: #28241f;
-  font-size: 10.5px;
+  font-size: 10.8px;
   font-weight: 710;
 }
 
 .field input {
-  min-height: 52px;
+  min-height: 56px;
   width: 100%;
-  padding: 0 14px;
-  border: 1px solid rgba(18,17,15,.105);
-  border-radius: 10px;
+  padding: 0 16px;
+  border: 1px solid rgba(18,17,15,.10);
+  border-radius: 11px;
   outline: 0;
   color: #191715;
-  background: rgba(255,255,255,.66);
+  background: rgba(255,255,255,.68);
   font: inherit;
-  font-size: 12.7px;
+  font-size: 13px;
   transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
 
@@ -264,13 +264,13 @@
 }
 
 .field input:focus {
-  border-color: rgba(181,107,63,.5);
-  background: rgba(255,255,255,.94);
-  box-shadow: 0 0 0 3px rgba(181,107,63,.07);
+  border-color: rgba(181,107,63,.48);
+  background: rgba(255,255,255,.95);
+  box-shadow: 0 0 0 3px rgba(181,107,63,.065);
 }
 
 .passwordHelp {
-  margin-top: -5px;
+  margin-top: -4px;
   text-align: right;
 }
 
@@ -281,7 +281,7 @@
 }
 
 .passwordHelp a {
-  font-size: 10.2px;
+  font-size: 10.4px;
   font-weight: 650;
 }
 
@@ -292,20 +292,20 @@
 }
 
 .submit {
-  min-height: 54px;
-  margin-top: 4px;
+  min-height: 57px;
+  margin-top: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 11px;
+  gap: 12px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 11px;
   color: #fff;
-  background: linear-gradient(135deg, #bf7547, #a85f36);
-  box-shadow: 0 10px 20px rgba(169,95,54,.13);
+  background: linear-gradient(135deg, #c07849, #a85f36);
+  box-shadow: 0 11px 21px rgba(169,95,54,.13);
   cursor: pointer;
   font: inherit;
-  font-size: 12.7px;
+  font-size: 13px;
   font-weight: 730;
   transition: transform .18s ease, box-shadow .18s ease;
 }
@@ -319,7 +319,7 @@
 
 .submit:hover {
   transform: translateY(-1px);
-  box-shadow: 0 13px 24px rgba(169,95,54,.17);
+  box-shadow: 0 14px 26px rgba(169,95,54,.17);
 }
 
 .submit:hover svg {
@@ -342,11 +342,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin-top: 30px;
-  padding-top: 18px;
+  margin-top: 34px;
+  padding-top: 20px;
   border-top: 1px solid var(--line);
   color: #918a83;
-  font-size: 9.7px;
+  font-size: 9.8px;
 }
 
 .footerLinks {
@@ -354,21 +354,26 @@
   align-items: center;
   gap: 7px;
   color: #aaa29a;
-  font-size: 9.7px;
+  font-size: 9.8px;
 }
 
 @media (max-width: 1040px) {
   .shell {
-    padding: 40px;
+    padding: 44px;
   }
 
   .ambient::before {
-    left: 56%;
+    left: 55.5%;
   }
 
   .layout {
-    grid-template-columns: minmax(0, .95fr) minmax(380px, .82fr);
-    gap: 56px;
+    width: min(100%, 920px);
+    grid-template-columns: minmax(0, .92fr) minmax(400px, .86fr);
+    gap: 54px;
+  }
+
+  .loginCard {
+    width: min(100%, 454px);
   }
 }
 
@@ -386,7 +391,7 @@
   .layout {
     width: min(100%, 620px);
     grid-template-columns: 1fr;
-    gap: 42px;
+    gap: 46px;
   }
 
   .brandPanel,
@@ -400,17 +405,17 @@
   }
 
   .wordmark {
-    margin-bottom: 48px;
+    margin-bottom: 50px;
   }
 
   .signature {
-    margin-top: 42px;
+    margin-top: 44px;
   }
 }
 
 @media (max-width: 520px) {
   .shell {
-    padding: 20px 16px 34px;
+    padding: 22px 16px 36px;
   }
 
   .wordmarkMain {
@@ -426,20 +431,25 @@
   }
 
   .points {
-    margin-top: 28px;
+    margin-top: 30px;
   }
 
   .loginCard {
-    padding: 25px 20px;
-    border-radius: 17px;
+    padding: 27px 21px;
+    border-radius: 18px;
   }
 
   .cardMeta {
-    margin-bottom: 28px;
+    margin-bottom: 30px;
   }
 
   .cardHeading h2 {
-    font-size: 29px;
+    font-size: 30px;
+  }
+
+  .field input,
+  .submit {
+    min-height: 54px;
   }
 
   .cardFooter {
