@@ -1,27 +1,25 @@
 .shell {
-  --werk-bg: #f7f5f2;
-  --werk-paper: rgba(255, 255, 255, 0.76);
-  --werk-paper-solid: #fffdfa;
-  --werk-ink: #11100f;
-  --werk-soft: #64605c;
-  --werk-muted: #928c86;
-  --werk-line: rgba(17, 16, 15, 0.1);
-  --werk-accent: #b86f42;
-  --werk-accent-dark: #a45d34;
-  --werk-accent-soft: rgba(184, 111, 66, 0.09);
+  --werk-bg: #f8f7f4;
+  --werk-paper: #fffdfa;
+  --werk-ink: #12110f;
+  --werk-soft: #625e59;
+  --werk-muted: #948d85;
+  --werk-line: rgba(18, 17, 15, 0.095);
+  --werk-accent: #b56b3f;
+  --werk-accent-dark: #95522e;
+  --werk-accent-soft: rgba(181, 107, 63, 0.085);
 
-  min-height: 100svh;
   position: relative;
   isolation: isolate;
+  min-height: 100svh;
   overflow: hidden;
   display: grid;
   place-items: center;
-  padding: clamp(28px, 4.5vw, 72px);
+  padding: clamp(48px, 6vw, 92px);
   color: var(--werk-ink);
   background:
-    radial-gradient(700px 500px at 85% 10%, rgba(184, 111, 66, 0.08), transparent 68%),
-    radial-gradient(600px 420px at 10% 92%, rgba(17, 16, 15, 0.035), transparent 70%),
-    linear-gradient(180deg, #fbfaf8 0%, var(--werk-bg) 100%);
+    radial-gradient(520px 380px at 85% 12%, rgba(181, 107, 63, 0.055), transparent 72%),
+    linear-gradient(180deg, #fdfcf9 0%, var(--werk-bg) 100%);
 }
 
 .ambient {
@@ -29,246 +27,287 @@
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 0 61%, rgba(255, 255, 255, 0.34) 61% 61.08%, transparent 61.08% 100%),
-    linear-gradient(180deg, rgba(255,255,255,.7), transparent 32%);
+}
+
+.ambient::before {
+  content: "";
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  left: 58.5%;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(18, 17, 15, 0.055) 15%,
+    rgba(18, 17, 15, 0.055) 85%,
+    transparent
+  );
+}
+
+.ambient::after {
+  content: "";
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  right: 9%;
+  top: 5%;
+  border-radius: 50%;
+  border: 1px solid rgba(181, 107, 63, 0.07);
+  opacity: 0.65;
 }
 
 .editorialRail {
   position: absolute;
-  top: 10%;
-  right: 24px;
-  bottom: 10%;
-  z-index: -1;
-  width: 28px;
+  right: clamp(18px, 2.2vw, 38px);
+  top: 50%;
+  transform: translateY(-50%);
+  height: min(58vh, 500px);
+  width: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-left: 1px solid rgba(184, 111, 66, 0.28);
+  z-index: -1;
 }
 
-.editorialRail::before,
-.editorialRail::after {
+.editorialRail::before {
   content: "";
   position: absolute;
-  left: -1px;
+  inset: 0 auto 0 50%;
   width: 1px;
-  height: 54px;
-  background: var(--werk-accent);
+  background: linear-gradient(to bottom, transparent, rgba(181, 107, 63, 0.34) 18%, rgba(181, 107, 63, 0.16) 82%, transparent);
 }
-
-.editorialRail::before { top: 0; }
-.editorialRail::after { bottom: 0; }
 
 .editorialRail span {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
-  color: #9c958e;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.28em;
+  padding: 16px 0;
+  color: #aaa29a;
+  background: var(--werk-bg);
+  font-size: 7.5px;
+  font-weight: 720;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
 }
 
 .layout {
-  width: min(100%, 1280px);
+  width: min(100%, 1120px);
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(480px, 0.88fr);
-  gap: clamp(64px, 7vw, 112px);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.82fr);
+  gap: clamp(76px, 8vw, 122px);
   align-items: center;
 }
 
 .brandPanel {
   min-width: 0;
-  max-width: 620px;
+  max-width: 535px;
 }
 
 .wordmark {
   display: inline-flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 5px;
-  margin-bottom: clamp(54px, 6vh, 76px);
+  margin-bottom: clamp(56px, 7vh, 78px);
 }
 
 .wordmark::after {
   content: "";
-  width: 100%;
+  width: 72%;
   height: 1px;
-  margin-top: 8px;
-  background: linear-gradient(90deg, var(--werk-accent), rgba(184, 111, 66, 0.18));
+  margin-top: 9px;
+  background: linear-gradient(90deg, var(--werk-accent), rgba(181, 107, 63, 0.08));
 }
 
 .wordmarkMain {
   font-family: Satoshi, Figtree, Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(52px, 5vw, 72px);
-  font-weight: 780;
-  line-height: 0.88;
-  letter-spacing: 0.04em;
+  font-size: clamp(45px, 4.4vw, 61px);
+  font-weight: 770;
+  line-height: 0.9;
+  letter-spacing: 0.045em;
 }
 
 .wordmarkSub {
-  color: #46423f;
-  font-size: 9px;
-  font-weight: 720;
-  letter-spacing: 0.34em;
+  color: #4c4742;
+  font-size: 8.3px;
+  font-weight: 730;
+  letter-spacing: 0.36em;
   text-transform: uppercase;
 }
 
 .brandCopy {
-  max-width: 590px;
+  max-width: 520px;
 }
 
 .eyebrow {
-  margin: 0 0 24px;
+  margin: 0 0 18px;
   color: var(--werk-accent);
-  font-size: 10px;
+  font-size: 8.8px;
   font-weight: 760;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.23em;
   text-transform: uppercase;
 }
 
 .brandPanel h1 {
   margin: 0;
-  max-width: 610px;
+  max-width: 520px;
   font-family: Satoshi, Figtree, Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(50px, 5.35vw, 76px);
-  font-weight: 720;
+  font-size: clamp(43px, 4.55vw, 61px);
+  font-weight: 710;
   line-height: 0.98;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.052em;
 }
 
 .brandPanel h1 span {
   display: block;
-  margin-top: 5px;
+  margin-top: 4px;
+  font-weight: 640;
 }
 
 .intro {
-  max-width: 540px;
-  margin: 22px 0 0;
+  max-width: 465px;
+  margin: 19px 0 0;
   color: var(--werk-soft);
-  font-size: clamp(16px, 1.2vw, 19px);
-  line-height: 1.55;
+  font-size: clamp(14px, 1vw, 16px);
+  line-height: 1.62;
 }
 
 .features {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(24px, 2.2vw, 38px);
-  margin-top: 46px;
+  margin-top: 42px;
+  border-top: 1px solid var(--werk-line);
 }
 
 .feature {
   min-width: 0;
+  padding: 21px 18px 0 0;
+}
+
+.feature + .feature {
+  padding-left: 18px;
+  border-left: 1px solid var(--werk-line);
 }
 
 .featureIcon {
-  width: 52px;
-  height: 52px;
+  width: 39px;
+  height: 39px;
   display: grid;
   place-items: center;
   margin-bottom: 14px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.74);
-  box-shadow:
-    inset 0 0 0 1px rgba(17,16,15,.045),
-    0 10px 24px rgba(35,29,24,.04);
+  border: 1px solid rgba(181, 107, 63, 0.16);
+  border-radius: 11px;
   color: var(--werk-accent);
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .featureIcon svg {
-  width: 23px;
-  height: 23px;
-  stroke-width: 1.8;
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.7;
 }
 
 .feature h2 {
   margin: 0;
-  color: #24211f;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  color: #24211e;
+  font-size: 11.5px;
+  font-weight: 710;
+  letter-spacing: -0.008em;
 }
 
 .feature p {
-  margin: 5px 0 0;
+  margin: 4px 0 0;
   color: var(--werk-muted);
-  font-size: 12px;
+  font-size: 10.4px;
   line-height: 1.45;
 }
 
 .signature {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  margin-top: 68px;
+  gap: 12px;
+  margin-top: clamp(58px, 7vh, 78px);
 }
 
 .signature > span {
-  width: 38px;
-  height: 1.5px;
-  margin-top: 7px;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 1px;
+  margin-top: 6px;
   background: var(--werk-accent);
 }
 
 .signature p {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   margin: 0;
 }
 
 .signature strong,
 .signature small {
   text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.21em;
 }
 
 .signature strong {
-  color: #5d5752;
-  font-size: 8.5px;
-  font-weight: 760;
+  color: #625b55;
+  font-size: 7.9px;
+  font-weight: 750;
 }
 
 .signature small {
-  color: #9f9891;
-  font-size: 7.6px;
+  color: #a59d95;
+  font-size: 7px;
 }
 
 .loginCard {
   position: relative;
-  width: min(100%, 570px);
+  width: min(100%, 488px);
   justify-self: end;
-  padding: clamp(42px, 4.6vw, 64px);
-  border: 1px solid rgba(255,255,255,.78);
-  border-radius: 26px;
-  background:
-    linear-gradient(145deg, rgba(255,255,255,.87), rgba(255,252,248,.69));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  padding: clamp(38px, 4vw, 50px);
+  overflow: hidden;
+  border: 1px solid rgba(18, 17, 15, 0.075);
+  border-radius: 22px;
+  background: rgba(255, 254, 251, 0.86);
   box-shadow:
-    0 38px 80px rgba(42, 34, 28, 0.09),
-    0 10px 30px rgba(42, 34, 28, 0.045),
-    inset 0 1px 0 rgba(255,255,255,.9);
+    0 32px 72px rgba(42, 34, 28, 0.07),
+    0 8px 22px rgba(42, 34, 28, 0.03);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .loginCard::before {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  width: 130px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(181, 107, 63, 0.45));
+}
+
+.loginCard::after {
+  content: "";
+  position: absolute;
+  right: -58px;
+  top: -58px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(181, 107, 63, 0.06), transparent 70%);
   pointer-events: none;
-  border-radius: inherit;
-  background:
-    radial-gradient(300px 220px at 100% 0%, rgba(184,111,66,.08), transparent 72%);
 }
 
 .cardMeta {
   position: relative;
   z-index: 1;
-  margin-bottom: 56px;
+  margin-bottom: clamp(42px, 5vh, 54px);
   text-align: right;
-  color: #9b948d;
-  font-size: 8.5px;
+  color: #a19a93;
+  font-size: 7.7px;
   font-weight: 760;
-  letter-spacing: 0.26em;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
 }
 
 .cardHeading {
@@ -279,17 +318,18 @@
 .cardHeading h2 {
   margin: 0;
   font-family: Satoshi, Figtree, Inter, ui-sans-serif, system-ui, sans-serif;
-  color: #11100f;
-  font-size: clamp(38px, 3.5vw, 54px);
-  font-weight: 720;
-  line-height: 1;
-  letter-spacing: -0.045em;
+  color: var(--werk-ink);
+  font-size: clamp(31px, 3vw, 40px);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.043em;
 }
 
 .cardHeading p {
-  margin: 13px 0 0;
+  max-width: 330px;
+  margin: 10px 0 0;
   color: var(--werk-soft);
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.55;
 }
 
@@ -297,68 +337,68 @@
 .error {
   position: relative;
   z-index: 1;
-  margin-top: 22px;
-  padding: 11px 13px;
-  border-radius: 10px;
-  font-size: 12px;
+  margin-top: 18px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 11px;
   line-height: 1.45;
 }
 
 .success {
   border: 1px solid rgba(66, 139, 92, 0.22);
-  background: rgba(66, 139, 92, 0.07);
+  background: rgba(66, 139, 92, 0.06);
   color: #356e49;
 }
 
 .error {
-  border: 1px solid rgba(184, 111, 66, 0.25);
-  background: rgba(184, 111, 66, 0.08);
-  color: #8b4f2f;
+  border: 1px solid rgba(181, 107, 63, 0.24);
+  background: rgba(181, 107, 63, 0.065);
+  color: #874b2b;
 }
 
 .form {
   position: relative;
   z-index: 1;
   display: grid;
-  gap: 18px;
-  margin-top: 38px;
+  gap: 15px;
+  margin-top: 31px;
 }
 
 .field {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .field label {
-  color: #1f1d1b;
-  font-size: 12px;
-  font-weight: 720;
+  color: #27231f;
+  font-size: 10.8px;
+  font-weight: 710;
 }
 
 .inputShell {
-  min-height: 60px;
+  min-height: 52px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 18px;
-  border: 1px solid rgba(17,16,15,.13);
-  border-radius: 13px;
-  background: rgba(255,255,255,.55);
-  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  gap: 11px;
+  padding: 0 15px;
+  border: 1px solid rgba(18, 17, 15, 0.105);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.62);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .inputShell:focus-within {
-  border-color: rgba(184,111,66,.55);
-  background: rgba(255,255,255,.86);
-  box-shadow: 0 0 0 4px rgba(184,111,66,.08);
+  border-color: rgba(181, 107, 63, 0.5);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 0 3px rgba(181, 107, 63, 0.07);
 }
 
 .inputShell svg {
   flex: 0 0 auto;
-  width: 19px;
-  height: 19px;
-  color: #7a746e;
-  stroke-width: 1.7;
+  width: 17px;
+  height: 17px;
+  color: #7b756f;
+  stroke-width: 1.65;
 }
 
 .inputShell input {
@@ -369,7 +409,7 @@
   color: #191715;
   background: transparent;
   font: inherit;
-  font-size: 14px;
+  font-size: 12.7px;
 }
 
 .inputShell input::placeholder {
@@ -377,7 +417,7 @@
 }
 
 .passwordHelp {
-  margin-top: -6px;
+  margin-top: -5px;
   text-align: right;
 }
 
@@ -388,7 +428,7 @@
 }
 
 .passwordHelp a {
-  font-size: 11.5px;
+  font-size: 10.3px;
   font-weight: 650;
 }
 
@@ -399,43 +439,50 @@
 }
 
 .submit {
-  min-height: 62px;
-  margin-top: 8px;
+  min-height: 54px;
+  margin-top: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   border: 0;
-  border-radius: 13px;
+  border-radius: 11px;
   color: #fff;
-  background: linear-gradient(135deg, #c77d4d, #a95f36);
-  box-shadow: 0 14px 28px rgba(169, 95, 54, .16);
+  background: linear-gradient(135deg, #bf7547, #a95f36);
+  box-shadow: 0 11px 22px rgba(169, 95, 54, 0.14);
   cursor: pointer;
   font: inherit;
-  font-size: 14px;
-  font-weight: 740;
-  transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+  font-size: 12.8px;
+  font-weight: 730;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 
 .submit svg {
-  width: 19px;
-  height: 19px;
+  width: 17px;
+  height: 17px;
   stroke-width: 1.8;
-  transition: transform .18s ease;
+  transition: transform 0.18s ease;
 }
 
 .submit:hover {
   transform: translateY(-1px);
-  filter: saturate(1.04);
-  box-shadow: 0 18px 34px rgba(169, 95, 54, .2);
+  filter: saturate(1.03);
+  box-shadow: 0 14px 26px rgba(169, 95, 54, 0.18);
 }
 
 .submit:hover svg {
-  transform: translateX(3px);
+  transform: translateX(2px);
 }
 
 .submit:active {
   transform: translateY(0);
+}
+
+.submit:focus-visible,
+.passwordHelp a:focus-visible,
+.footerLinks a:focus-visible {
+  outline: 2px solid rgba(181, 107, 63, 0.58);
+  outline-offset: 3px;
 }
 
 .cardFooter {
@@ -444,74 +491,77 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  margin-top: 40px;
-  padding-top: 24px;
+  gap: 14px;
+  margin-top: 32px;
+  padding-top: 19px;
   border-top: 1px solid var(--werk-line);
 }
 
 .securityLine {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   margin: 0;
-  color: #85807b;
-  font-size: 11px;
+  color: #89837d;
+  font-size: 9.7px;
 }
 
 .securityLine svg {
-  width: 16px;
-  height: 16px;
-  color: #6e6964;
-  stroke-width: 1.7;
+  width: 14px;
+  height: 14px;
+  color: #706a64;
+  stroke-width: 1.65;
 }
 
 .footerLinks {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #a39c95;
-  font-size: 10.5px;
+  gap: 7px;
+  color: #aaa29a;
+  font-size: 9.4px;
 }
 
 @media (max-width: 1100px) {
   .shell {
     overflow: auto;
-    padding: 36px;
+    padding: 44px 34px;
   }
 
   .editorialRail {
     display: none;
   }
 
+  .ambient::before {
+    display: none;
+  }
+
   .layout {
-    grid-template-columns: minmax(0, 0.9fr) minmax(430px, 1fr);
-    gap: 44px;
+    grid-template-columns: minmax(0, 0.95fr) minmax(390px, 0.82fr);
+    gap: 52px;
   }
 
   .brandPanel h1 {
-    font-size: clamp(46px, 6vw, 62px);
-  }
-
-  .features {
-    gap: 20px;
+    font-size: clamp(42px, 5.2vw, 56px);
   }
 }
 
 @media (max-width: 860px) {
   .shell {
     place-items: start center;
-    padding: 30px 22px 44px;
+    overflow: auto;
+    padding: 34px 22px 48px;
   }
 
-  .ambient {
-    background: radial-gradient(520px 340px at 90% 0%, rgba(184,111,66,.08), transparent 70%);
+  .ambient::after {
+    width: 180px;
+    height: 180px;
+    right: -50px;
   }
 
   .layout {
-    width: min(100%, 680px);
+    width: min(100%, 620px);
     grid-template-columns: 1fr;
-    gap: 42px;
+    gap: 50px;
   }
 
   .brandPanel {
@@ -519,11 +569,16 @@
   }
 
   .wordmark {
-    margin-bottom: 40px;
+    margin-bottom: 42px;
+  }
+
+  .brandCopy {
+    max-width: 560px;
   }
 
   .brandPanel h1 {
-    font-size: clamp(46px, 11vw, 68px);
+    max-width: 560px;
+    font-size: clamp(42px, 9vw, 58px);
   }
 
   .intro {
@@ -546,54 +601,59 @@
 
 @media (max-width: 560px) {
   .shell {
-    padding: 24px 16px 34px;
+    padding: 26px 16px 38px;
   }
 
   .wordmarkMain {
-    font-size: 48px;
+    font-size: 43px;
   }
 
   .wordmarkSub {
-    font-size: 8px;
+    font-size: 7.8px;
   }
 
   .eyebrow {
-    margin-bottom: 18px;
-    font-size: 8.5px;
+    font-size: 8px;
   }
 
   .brandPanel h1 {
-    font-size: clamp(42px, 14vw, 58px);
+    font-size: clamp(39px, 12vw, 50px);
   }
 
   .intro {
-    margin-top: 16px;
-    font-size: 15px;
+    font-size: 13.5px;
   }
 
   .features {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 0;
     margin-top: 30px;
   }
 
-  .feature {
+  .feature,
+  .feature + .feature {
     display: grid;
-    grid-template-columns: 46px 1fr;
+    grid-template-columns: 36px minmax(0, 1fr);
     column-gap: 12px;
-    align-items: center;
+    padding: 15px 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--werk-line);
+  }
+
+  .feature:first-child {
+    border-top: 0;
   }
 
   .featureIcon {
     grid-row: 1 / span 2;
-    width: 46px;
-    height: 46px;
+    width: 34px;
+    height: 34px;
     margin: 0;
   }
 
-  .feature h2,
-  .feature p {
-    grid-column: 2;
+  .featureIcon svg {
+    width: 16px;
+    height: 16px;
   }
 
   .feature p {
@@ -601,43 +661,30 @@
   }
 
   .signature {
-    margin-top: 34px;
+    margin-top: 38px;
   }
 
   .loginCard {
-    padding: 30px 22px;
-    border-radius: 20px;
+    padding: 31px 24px;
+    border-radius: 18px;
   }
 
   .cardMeta {
-    margin-bottom: 38px;
+    margin-bottom: 36px;
   }
 
   .cardHeading h2 {
-    font-size: clamp(36px, 11vw, 46px);
-  }
-
-  .cardHeading p {
-    font-size: 14px;
+    font-size: 31px;
   }
 
   .form {
-    margin-top: 30px;
-  }
-
-  .inputShell {
-    min-height: 56px;
-  }
-
-  .submit {
-    min-height: 58px;
+    margin-top: 27px;
   }
 
   .cardFooter {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
-    margin-top: 32px;
   }
 }
 
