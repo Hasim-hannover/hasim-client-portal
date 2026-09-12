@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, FileUp, LoaderCircle, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -38,6 +38,19 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
   const [status, setStatus] = useState("");
   const [tone, setTone] = useState<Tone>("neutral");
   const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
 
   function feedback(message: string, nextTone: Tone = "neutral") {
     setStatus(message);
@@ -46,7 +59,8 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const file = fileRef.current?.files?.[0];
+    const form = event.currentTarget;
+    const file = selectedFile ?? fileRef.current?.files?.[0] ?? null;
     if (!file) return feedback("Bitte eine PDF-Datei auswählen.", "error");
     if (file.size > MAX_FILE_SIZE) return feedback("Die Datei ist größer als 100 MB.", "error");
     if (!(await isPdfFile(file))) return feedback("Bitte eine gültige PDF-Datei hochladen.", "error");
@@ -104,16 +118,17 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
           body: JSON.stringify({ kind: "upload", projectId, eventId: uploadId }),
         });
       } catch {
-        // The document itself is authoritative; notification delivery is best effort.
+        // Das Dokument ist führend; die E-Mail-Benachrichtigung bleibt best effort.
       }
 
-      event.currentTarget.reset();
+      form.reset();
+      setSelectedFile(null);
       setLabel("");
       setNote("");
       setInvoiceNumber("");
       setInvoiceAmount("");
       setInvoiceDueAt("");
-      feedback(`${documentType === "invoice" ? "Rechnung" : documentType === "contract" ? "Auftrag / Vertrag" : "Dokument"} ist im Kundenportal verfügbar.`, "success");
+      feedback(`${documentType === "invoice" ? "Rechnung" : documentType === "contract" ? "Angebot / Auftrag / Vertrag" : "Dokument"} ist im Kundenportal verfügbar.`, "success");
       router.refresh();
     } catch (error) {
       feedback(`Upload fehlgeschlagen: ${error instanceof Error ? error.message : "Unbekannter Fehler"}`, "error");
@@ -127,14 +142,14 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
   return (
     <div className="admin-document-upload">
       <div className="section-heading compact-heading">
-        <div><div className="eyebrow">Dokument bereitstellen</div><h3>Vertrag, Rechnung oder Projektunterlage</h3></div>
+        <div><div className="eyebrow">Dokument bereitstellen</div><h3>Angebot, Auftrag, Vertrag oder Rechnung</h3></div>
       </div>
       <form className="admin-form" onSubmit={handleSubmit} aria-busy={uploading}>
         <div className="form-field-grid two-columns">
           <div className="form-field">
             <label htmlFor={`document-type-${projectId}`}>Dokumenttyp</label>
             <select id={`document-type-${projectId}`} value={documentType} onChange={(event) => setDocumentType(event.target.value as DocumentType)} disabled={uploading}>
-              <option value="contract">Auftrag / Vertrag</option>
+              <option value="contract">Angebot / Auftrag / Vertrag</option>
               <option value="invoice">Rechnung</option>
               <option value="project">Projektunterlage</option>
               <option value="approval">Freigabe / Abnahme</option>
@@ -143,7 +158,7 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
           </div>
           <div className="form-field">
             <label htmlFor={`document-label-${projectId}`}>Anzeigename <span className="optional-label">optional</span></label>
-            <input id={`document-label-${projectId}`} value={label} onChange={(event) => setLabel(event.target.value)} maxLength={160} placeholder={documentType === "invoice" ? "1. Teilrechnung – 30 %" : "Auftrag & Vertragsgrundlage"} disabled={uploading} />
+            <input id={`document-label-${projectId}`} value={label} onChange={(event) => setLabel(event.target.value)} maxLength={160} placeholder={documentType === "invoice" ? "1. Teilrechnung – 30 %" : "Angebot & Projektgrundlage"} disabled={uploading} />
           </div>
         </div>
 
@@ -155,7 +170,32 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
           </div>
         ) : null}
 
-        <div className="form-field"><label htmlFor={`document-file-${projectId}`}>PDF-Datei</label><input ref={fileRef} id={`document-file-${projectId}`} type="file" accept="application/pdf,.pdf" required disabled={uploading} /></div>
+        <div className="form-field">
+          <label htmlFor={`document-file-${projectId}`}>PDF-Datei</label>
+          <input
+            ref={fileRef}
+            id={`document-file-${projectId}`}
+            type="file"
+            accept="application/pdf,.pdf"
+            required
+            disabled={uploading}
+            onChange={(event) => {
+              setSelectedFile(event.target.files?.[0] ?? null);
+              feedback("");
+            }}
+          />
+        </div>
+
+        {previewUrl && selectedFile ? (
+          <div className="admin-pdf-preview" aria-label={`Vorschau von ${selectedFile.name}`}>
+            <div className="admin-pdf-preview-head">
+              <div><span>PDF-Vorschau</span><strong>{selectedFile.name}</strong></div>
+              <small>So kann das Dokument vor der Veröffentlichung geprüft werden.</small>
+            </div>
+            <iframe src={previewUrl} title={`PDF-Vorschau: ${selectedFile.name}`} />
+          </div>
+        ) : null}
+
         <div className="form-field"><label htmlFor={`document-note-${projectId}`}>Kurze Nachricht an den Kunden <span className="optional-label">optional</span></label><textarea id={`document-note-${projectId}`} value={note} onChange={(event) => setNote(event.target.value)} rows={3} maxLength={2000} placeholder={`Kurzer Hinweis zu ${projectName}.`} disabled={uploading} /></div>
         <button className="primary-button" type="submit" disabled={uploading}>{uploading ? "Wird hochgeladen …" : "Dokument veröffentlichen"}</button>
       </form>
