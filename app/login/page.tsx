@@ -1,33 +1,9 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  FileText,
-  LockKeyhole,
-  Mail,
-  MessageSquare,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { login } from "./actions";
 import styles from "./login.module.css";
 
-const benefits = [
-  {
-    title: "Kommunikation",
-    text: "Direkt im Projekt",
-    Icon: MessageSquare,
-  },
-  {
-    title: "Unterlagen",
-    text: "Zentral verfügbar",
-    Icon: FileText,
-  },
-  {
-    title: "Fortschritt",
-    text: "Jederzeit im Blick",
-    Icon: CheckCircle2,
-  },
-];
+const points = ["Dateien", "Abstimmungen", "Freigaben"];
 
 export default async function LoginPage({
   searchParams,
@@ -41,9 +17,6 @@ export default async function LoginPage({
   return (
     <main className={styles.shell} id="main-content">
       <div className={styles.ambient} aria-hidden="true" />
-      <div className={styles.editorialRail} aria-hidden="true">
-        <span>Ideen · Struktur · Fortschritt</span>
-      </div>
 
       <div className={styles.layout}>
         <section className={styles.brandPanel} aria-labelledby="werk-intro-title">
@@ -53,43 +26,29 @@ export default async function LoginPage({
           </div>
 
           <div className={styles.brandCopy}>
-            <p className={styles.eyebrow}>Effizient. Transparent. Gemeinsam.</p>
+            <p className={styles.eyebrow}>Projektzugang</p>
             <h1 id="werk-intro-title">
-              Projekte.
-              <span>Klar organisiert.</span>
+              Klar rein.
+              <span>Klar weiter.</span>
             </h1>
-            <p className={styles.intro}>
-              Alle Projektdaten, Abstimmungen und Freigaben an einem zentralen Ort.
-            </p>
+            <p className={styles.intro}>Ein zentraler Zugang für laufende Projekte.</p>
           </div>
 
-          <div className={styles.features} aria-label="Funktionen des WERK Klientenportals">
-            {benefits.map(({ title, text, Icon }) => (
-              <article className={styles.feature} key={title}>
-                <div className={styles.featureIcon} aria-hidden="true">
-                  <Icon />
-                </div>
-                <h2>{title}</h2>
-                <p>{text}</p>
-              </article>
+          <ul className={styles.points} aria-label="Bereiche im Klientenportal">
+            {points.map((point) => (
+              <li key={point}>{point}</li>
             ))}
-          </div>
+          </ul>
 
-          <div className={styles.signature}>
-            <span aria-hidden="true" />
-            <p>
-              <strong>Entwickelt von Hasim Üner</strong>
-              <small>Für eine strukturierte Zusammenarbeit.</small>
-            </p>
-          </div>
+          <p className={styles.signature}>Entwickelt von Hasim Üner</p>
         </section>
 
         <section className={styles.loginCard} aria-labelledby="login-title">
           <div className={styles.cardMeta}>WERK / LOGIN</div>
 
           <div className={styles.cardHeading}>
-            <h2 id="login-title">Willkommen zurück.</h2>
-            <p>Melde dich an, um auf deine Projekte zuzugreifen.</p>
+            <h2 id="login-title">Anmelden</h2>
+            <p>Für Kund:innen mit Zugang.</p>
           </div>
 
           {message ? <div className={styles.success} role="status">{message}</div> : null}
@@ -97,33 +56,27 @@ export default async function LoginPage({
           <form action={login} className={styles.form}>
             <div className={styles.field}>
               <label htmlFor="login-email">E-Mail</label>
-              <div className={styles.inputShell}>
-                <Mail aria-hidden="true" />
-                <input
-                  id="login-email"
-                  type="email"
-                  name="email"
-                  autoComplete="email"
-                  inputMode="email"
-                  placeholder="name@beispiel.de"
-                  required
-                />
-              </div>
+              <input
+                id="login-email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="name@beispiel.de"
+                required
+              />
             </div>
 
             <div className={styles.field}>
               <label htmlFor="login-password">Passwort</label>
-              <div className={styles.inputShell}>
-                <LockKeyhole aria-hidden="true" />
-                <input
-                  id="login-password"
-                  type="password"
-                  name="password"
-                  autoComplete="current-password"
-                  placeholder="Passwort eingeben"
-                  required
-                />
-              </div>
+              <input
+                id="login-password"
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                placeholder="Passwort eingeben"
+                required
+              />
             </div>
 
             <div className={styles.passwordHelp}>
@@ -139,10 +92,7 @@ export default async function LoginPage({
           </form>
 
           <footer className={styles.cardFooter}>
-            <p className={styles.securityLine}>
-              <ShieldCheck aria-hidden="true" />
-              <span>Sicherer Zugang.</span>
-            </p>
+            <span>Sicherer Zugang.</span>
             <div className={styles.footerLinks}>
               <a href="mailto:hallo@hasimuener.de">Hilfe</a>
               <span aria-hidden="true">·</span>
