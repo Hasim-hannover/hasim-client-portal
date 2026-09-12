@@ -26,16 +26,14 @@ export function PrivacyDialog({ children }: { children: ReactNode }) {
       >
         <div className={styles.panel}>
           <div className={styles.topbar}>
-            <span>WERK / DATENSCHUTZ</span>
+            <span id="privacy-dialog-title">WERK / DATENSCHUTZ</span>
             <button type="button" className={styles.close} onClick={close} aria-label="Datenschutz schließen">
               <span aria-hidden="true">×</span>
             </button>
           </div>
 
           <div className={styles.scroll}>
-            <article className="legal-page" id="privacy-dialog-title">
-              {children}
-            </article>
+            <article className="legal-page">{children}</article>
           </div>
         </div>
       </dialog>
