@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, FileUp, LoaderCircle, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import previewStyles from "./admin-document-upload.module.css";
 
 type DocumentType = "contract" | "invoice" | "project" | "approval" | "handover";
 type Tone = "neutral" | "success" | "error";
@@ -187,8 +188,8 @@ export function AdminDocumentUpload({ projectId, projectName }: { projectId: str
         </div>
 
         {previewUrl && selectedFile ? (
-          <div className="admin-pdf-preview" aria-label={`Vorschau von ${selectedFile.name}`}>
-            <div className="admin-pdf-preview-head">
+          <div className={previewStyles.preview} aria-label={`Vorschau von ${selectedFile.name}`}>
+            <div className={previewStyles.previewHead}>
               <div><span>PDF-Vorschau</span><strong>{selectedFile.name}</strong></div>
               <small>So kann das Dokument vor der Veröffentlichung geprüft werden.</small>
             </div>
