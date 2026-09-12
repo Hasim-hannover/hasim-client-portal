@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FolderKanban, LogOut, MailPlus, MessageSquare, Users } from "lucide-react";
+import { FileText, FolderKanban, LogOut, MailPlus, MessageSquare, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/portal/actions";
 import { MessagePanel } from "@/app/portal/message-panel";
@@ -8,7 +8,6 @@ import { UploadPanel } from "@/app/portal/upload-panel";
 import {
   createProject,
   createProjectRequest,
-  inviteClient,
   updateProjectPhase,
   updateProjectRequestStatus,
 } from "./actions";
@@ -91,6 +90,7 @@ export default async function AdminPage({
         <nav className="nav" aria-label="Admin Navigation">
           <a className="nav-item active" href="#overview" aria-current="location">Übersicht</a>
           <Link className="nav-item" href="/admin/clients">Kundenakten</Link>
+          <Link className="nav-item" href="/admin/onboarding">Onboarding</Link>
           <a className="nav-item" href="#projects">Projekte</a>
           <a className="nav-item" href="#communication">Kommunikation</a>
           <a className="nav-item" href="#system">System</a>
@@ -105,7 +105,7 @@ export default async function AdminPage({
         <div id="overview" className="anchor-target">
           <div className="eyebrow">Backend</div>
           <h1>Kunden und Projekte steuern.</h1>
-          <p className="lead">Hier steuerst du den kompletten Kundenfluss: Zugang, Projektphase, benötigte Unterlagen, Dateien und Kommunikation.</p>
+          <p className="lead">Hier bereitest du Projekträume vor, hinterlegst Unterlagen und verschickst den Kundenzugang erst, wenn alles bereit ist.</p>
         </div>
 
         {message ? <div className="form-success" role="status">{message}</div> : null}
@@ -122,13 +122,14 @@ export default async function AdminPage({
 
         <section className="admin-grid" id="clients" aria-label="Kundenverwaltung">
           <article className="admin-panel">
-            <div className="section-heading compact-heading"><div><div className="eyebrow">Kundenverwaltung</div><h2>Neuen Kunden einladen</h2></div></div>
-            <form action={inviteClient} className="admin-form">
-              <label htmlFor="invite-name">Name</label><input id="invite-name" name="fullName" required autoComplete="name" placeholder="Max Mustermann" />
-              <label htmlFor="invite-email">E-Mail</label><input id="invite-email" name="email" type="email" required autoComplete="email" placeholder="kunde@example.de" />
-              <label htmlFor="invite-project">Erstes Projekt <span className="optional-label">optional</span></label><input id="invite-project" name="projectName" placeholder="Website Relaunch" />
-              <button className="primary-button" type="submit">Einladung senden</button>
-            </form>
+            <div className="section-heading compact-heading"><div><div className="eyebrow">Kundenverwaltung</div><h2>Neuen Projektraum vorbereiten</h2></div></div>
+            <p className="muted">Kunde und Projekt zuerst anlegen. Danach kannst du Angebot, Auftrag, Vertrag oder andere PDF-Unterlagen hochladen und prüfen. Die Einladung wird bewusst erst aus der Kundenakte verschickt.</p>
+            <div className="dossier-access-list">
+              <div><FolderKanban size={18} aria-hidden="true" /><span><strong>Projekt & Startphase</strong><small>Aktuellen Projektstand bereits vor dem ersten Login festlegen.</small></span></div>
+              <div><FileText size={18} aria-hidden="true" /><span><strong>PDF-Unterlagen vorbereiten</strong><small>Angebot, Auftrag und Vertrag mit Vorschau hinterlegen.</small></span></div>
+              <div><MailPlus size={18} aria-hidden="true" /><span><strong>Einladung zuletzt senden</strong><small>Der Kunde betritt direkt einen vorbereiteten Projektraum.</small></span></div>
+            </div>
+            <Link className="primary-button button-link" href="/admin/onboarding">Projektraum vorbereiten</Link>
           </article>
 
           <article className="admin-panel">
