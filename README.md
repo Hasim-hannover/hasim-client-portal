@@ -1,23 +1,47 @@
-# Hasim Client Portal
+# Client Portal
 
-Schlankes Kundenportal für den sicheren Austausch von Projektdateien und die spätere Erweiterung um Freigaben, Nachrichten und Projektstatus.
+Authentifiziertes Kundenportal für projektbezogene Dateien und eine schrittweise erweiterbare Kundenkommunikation.
+
+Der Fokus liegt nicht auf einem generischen Dashboard, sondern auf einer sauberen technischen Basis: mandantenbezogene Zugriffe, versioniertes Datenmodell, private Dateien und ein reproduzierbarer Deployment-Prozess.
+
+## Architektur
+
+```text
+Next.js
+  │
+  ├── Auth / SSR
+  │      ↓
+  │   Supabase Auth
+  │
+  ├── Projektdaten
+  │      ↓
+  │   Postgres + RLS
+  │
+  └── Dateien
+         ↓
+      Private Storage
+```
 
 ## Stack
 
-- Next.js
+- Next.js 16
+- React 19
 - TypeScript
 - Supabase Auth
 - Supabase Postgres
 - Supabase Storage
-- Vercel für das erste Deployment
+- Row Level Security
+- Vercel
+- ESLint + TypeScript Checks
 
-## MVP
+## Engineering-Prinzipien
 
-1. Login für Kunden
-2. Kundenzuordnung zu Projekten
-3. Bereiche Dokumente, Bilder und Videos
-4. Upload und Download pro Projekt
-5. Zugriffsschutz per Row Level Security
+- projektbezogene Autorisierung statt nur geschützter Oberfläche
+- Datenbankänderungen als versionierte Supabase-Migrationen
+- private Storage-Buckets
+- keine Secrets im Repository
+- Linting, Typecheck und Build als gemeinsamer Qualitätscheck
+- Production-Deployment aus `main`
 
 ## Lokal starten
 
@@ -27,17 +51,19 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Danach in `.env.local` diese Variablen eintragen:
+Erforderlich sind mindestens:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
-## Supabase
+## Qualitätscheck
 
-Das Datenmodell wird versioniert über Migrationen unter `supabase/migrations/` verwaltet. Enthalten sind Profile, Projekte, Projektdateien, Row Level Security und der private Storage-Bucket für Projektdateien.
+```bash
+npm run check
+```
 
-## Deployment
+Der Befehl führt Linting, TypeScript-Prüfung und Production-Build nacheinander aus.
 
-`main` ist der Production-Branch. Pushes auf `main` lösen das Vercel-Deployment aus; Supabase übernimmt Datenbankänderungen aus `supabase/migrations/`.
+## Datenschutz
 
-Keine Secrets in GitHub committen.
+Das Repository enthält zusätzlich eine dokumentierte Privacy-Readiness-Prüfung. Produktive Kundendaten und Zugangsdaten gehören nicht in Git.
